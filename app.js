@@ -113,13 +113,13 @@ function getScoreHTML(score, status) {
     return `<span class="score-text ${styleClass}">${score.toLocaleString()}</span>${badgeHTML}`;
 }
 
-// 2. 테이블 렌더링 (졸업 곡 조건 강조 포함)
+// 2. 테이블 렌더링 (곡 ID 열 제거 버전)
 function renderTable(dataList) {
     const tableBody = document.getElementById('tableBody');
     tableBody.innerHTML = '';
 
     if (dataList.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6">등록된 데이터가 없습니다.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="5">등록된 데이터가 없습니다.</td></tr>'; // colspan을 6에서 5로 변경
         return;
     }
 
@@ -133,18 +133,17 @@ function renderTable(dataList) {
 
         const l = (level) => (level !== null && level !== undefined) ? `(Lv.${level})` : '';
 
-        // ✨ [체크] 모든 난이도가 AP+ 상태인지 확인 (곡 졸업 여부)
+        // 모든 난이도가 AP+ 상태인지 확인 (곡 졸업 여부)
         const isGraduated = item.casual_status === 'AP+' && 
                             item.normal_status === 'AP+' && 
                             item.hard_status === 'AP+' && 
                             item.expert_status === 'AP+';
 
-        // 졸업 여부에 따라 곡 정보 셀에 특수 디자인 클래스 및 메달 배지 부여
         const songCellClass = isGraduated ? 'song-info-cell graduated-song-cell' : 'song-info-cell';
         const masterBadge = isGraduated ? '<span class="graduated-badge">🏅 MASTER</span>' : '';
 
+        // 💡 <td>${item.song_id}</td> 부분을 완전히 제외하고 5개의 열만 렌더링합니다.
         tr.innerHTML = `
-            <td>${item.song_id}</td>
             <td class="${songCellClass}">
                 <strong class="song-title" style="display:inline-block; vertical-align:middle;">${song.title}</strong>${masterBadge}
                 <span class="song-composer" style="display:block; margin-top:2px;">${song.composer || 'Unknown Composer'}</span>
