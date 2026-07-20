@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>리듬게임 기록 관리 시스템</title>
+    <!-- Supabase 라이브러리 로드 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background-color: #f8f9fa; color: #333; }
+        h1, h3 { color: #2c3e50; }
+        
+        /* 입력 폼 스타일 */
+        .form-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+        input[type="number"] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        /* 난이도별 점수 입력 그리드 */
+        .score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+        .score-input-box { padding: 10px; border-radius: 6px; }
+        .bg-casual { background-color: #ebf5fb; border: 1px solid #aec6cf; }
+        .bg-normal { background-color: #eafaf1; border: 1px solid #b2d8b2; }
+        .bg-hard { background-color: #fef9e7; border: 1px solid #f9e79f; }
+        .bg-expert { background-color: #fbeee6; border: 1px solid #f5cba7; }
+        
+        button { width: 100%; padding: 12px; background-color: #2ecc71; color: white; border: none; border-radius: 4px; font-size: 1em; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        button:hover { background-color: #27ae60; }
+
+        /* 기록 목록 보드 스타일 */
+        .record-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 5px solid #34495e; }
+        .song-title { font-size: 1.2em; font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
+        .song-composer { font-size: 0.9em; color: #7f8c8d; margin-bottom: 12px; }
+        
+        /* 결과 출력을 위한 테이블 스타일 */
+        .result-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.9em; }
+        .result-table th, .result-table td { padding: 8px; border: 1px solid #eee; }
+        .result-table th { background-color: #f2f4f4; }
+        
+        /* 난이도별 텍스트 색상 포인트 */
+        .text-casual { color: #2980b9; font-weight: bold; }
+        .text-normal { color: #27ae60; font-weight: bold; }
+        .text-hard { color: #d4ac0d; font-weight: bold; }
+        .text-expert { color: #e67e22; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>🎵 리듬게임 개인 기록 관리</h1>
+
+    <!-- 1. 기록 입력 폼 -->
+    <div class="form-container">
+        <h3>새 플레이 기록 등록 / 업데이트</h3>
+        <div class="form-group">
+            <label for="songId">곡 ID (songs 테이블의 id 값)</label>
+            <input type="number" id="songId" placeholder="예: 1">
+        </div>
+        
+        <label>난이도별 점수 입력 (점수가 없는 난이도는 비워두세요)</label>
+        <div class="score-grid">
+            <div class="score-input-box bg-casual">
+                <label class="text-casual">Casual 점수</label>
+                <input type="number" id="casualScore" placeholder="점수 입력">
+            </div>
+            <div class="score-input-box bg-normal">
+                <label class="text-normal">Normal 점수</label>
+                <input type="number" id="normalScore" placeholder="점수 입력">
+            </div>
+            <div class="score-input-box bg-hard">
+                <label class="text-hard">Hard 점수</label>
+                <input type="number" id="hardScore" placeholder="점수 입력">
+            </div>
+            <div class="score-input-box bg-expert">
+                <label class="text-expert">Expert 점수</label>
+                <input type="number" id="expertScore" placeholder="점수 입력">
+            </div>
+        </div>
+        
+        <button onclick="saveRecord()">기록 저장하기</button>
+    </div>
+
+    <!-- 2. 기록 출력 목록 -->
+    <h3>내 플레이 기록 목록</h3>
+    <div id="recordList">기록 데이터를 불러오는 중...</div>
+
+    <script src="app.js"></script>
+</body>
+</html>
