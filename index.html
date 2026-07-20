@@ -255,24 +255,47 @@
             100% { background-position: 200% center; }
         }
 
-        /* 우측 정보 배지 양식 */
+        /* [수정] 배지 너비 고정 및 칼정렬 처리 */
         .status-badge {
             font-size: 10px;
             font-weight: bold;
-            padding: 1px 4px;
-            border-radius: 3px;
-            margin-left: 5px;
-            vertical-align: middle;
+            width: 32px;                /* 가로 폭 고정 */
             display: inline-block;
+            text-align: center;         /* 글자 중앙 정렬 */
+            padding: 2px 0;             /* 패딩 균일화 */
+            border-radius: 3px;
+            margin-left: 6px;
+            vertical-align: middle;
+            box-sizing: border-box;
         }
         .badge-fc { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
         .badge-ap { background: #e8daff; color: #6f42c1; border: 1px solid #d6bbfb; }
-        /* AP+ 골드네온 테두리 배지 */
         .badge-applus { 
             background: #e3fafc; 
             color: #0c8599; 
             border: 1px solid #99e9f2;
             box-shadow: 0 0 4px rgba(12, 133, 153, 0.4);
+        }
+
+        /* ✨ [신규] 전 난이도 AP+ 졸업 곡 셀 전용 붉은색 테마 디자인 */
+        .graduated-song-cell {
+            background: linear-gradient(135deg, #fff0f2 0%, #ffe3e6 100%) !important;
+            border-left: 4px solid #e63946 !important;
+            position: relative;
+            transition: background 0.3s;
+        }
+        .graduated-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: bold;
+            color: #d6336c;
+            background: #fff0f6;
+            border: 1px solid #fcc419; /* 금빛 테두리 */
+            padding: 1px 5px;
+            border-radius: 4px;
+            margin-left: 6px;
+            vertical-align: middle;
+            box-shadow: 0 0 4px rgba(252, 196, 25, 0.5);
         }
     </style>
 </head>

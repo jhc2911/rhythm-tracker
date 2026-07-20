@@ -112,7 +112,7 @@ function getScoreHTML(score, status) {
     return `<span class="score-text ${styleClass}">${score.toLocaleString()}</span>${badgeHTML}`;
 }
 
-// 2. 테이블 렌더링
+// 2. 테이블 렌더링 (졸업 곡 조건 강조 포함)
 function renderTable(dataList) {
     const tableBody = document.getElementById('tableBody');
     tableBody.innerHTML = '';
@@ -132,11 +132,21 @@ function renderTable(dataList) {
 
         const l = (level) => (level !== null && level !== undefined) ? `(Lv.${level})` : '';
 
+        // ✨ [체크] 모든 난이도가 AP+ 상태인지 확인 (곡 졸업 여부)
+        const isGraduated = item.casual_status === 'AP+' && 
+                            item.normal_status === 'AP+' && 
+                            item.hard_status === 'AP+' && 
+                            item.expert_status === 'AP+';
+
+        // 졸업 여부에 따라 곡 정보 셀에 특수 디자인 클래스 및 메달 배지 부여
+        const songCellClass = isGraduated ? 'song-info-cell graduated-song-cell' : 'song-info-cell';
+        const masterBadge = isGraduated ? '<span class="graduated-badge">🏅 MASTER</span>' : '';
+
         tr.innerHTML = `
             <td>${item.song_id}</td>
-            <td class="song-info-cell">
-                <strong class="song-title">${song.title}</strong>
-                <span class="song-composer">${song.composer || 'Unknown Composer'}</span>
+            <td class="${songCellClass}">
+                <strong class="song-title" style="display:inline-block; vertical-align:middle;">${song.title}</strong>${masterBadge}
+                <span class="song-composer" style="display:block; margin-top:2px;">${song.composer || 'Unknown Composer'}</span>
             </td>
             <td class="col-casual">${getScoreHTML(item.casual_score, item.casual_status)}<br><div class="level-badge">${l(song.casual_level)}</div></td>
             <td class="col-normal">${getScoreHTML(item.normal_score, item.normal_status)}<br><div class="level-badge">${l(song.normal_level)}</div></td>
