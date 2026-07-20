@@ -297,6 +297,25 @@
             vertical-align: middle;
             box-shadow: 0 0 4px rgba(252, 196, 25, 0.5);
         }
+
+        /* 통계 테이블 전용 스타일 */
+        .stats-count {
+            font-weight: bold;
+            font-size: 15px;
+        }
+        .stats-rate {
+            font-size: 12px;
+            color: #666;
+            margin-left: 4px;
+        }
+        .total-row {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .total-row td {
+            border-top: 2px solid #ddd;
+            border-bottom: 2px solid #ddd;
+        }
     </style>
 </head>
 <body>
@@ -371,6 +390,23 @@
 
         <button class="submit-btn" onclick="saveRecord()">기록 저장하기</button>
     </div>
+
+<!-- 📊 레벨별 통계 섹션 -->
+    <h2 style="margin-top: 40px;">📊 레벨별 통계</h2>
+    <table style="margin-bottom: 50px;">
+        <thead>
+            <tr>
+                <th style="width: 12%;">LV</th>
+                <th style="width: 22%;">ALL PERFECT+ (비율)</th>
+                <th style="width: 22%;">ALL PERFECT (비율)</th>
+                <th style="width: 22%;">FULL COMBO (비율)</th>
+                <th style="width: 22%;">CLEAR (비율)</th>
+            </tr>
+        </thead>
+        <tbody id="statsTableBody">
+            <!-- 자바스크립트에서 동적으로 생성됩니다 -->
+        </tbody>
+    </table>
 
     <!-- 내 플레이 기록 목록 -->
     <h2>내 플레이 기록 목록 <span style="font-size:14px; color:#888; font-weight:normal;">(행을 누르면 상단 폼에 자동 입력됩니다)</span></h2>

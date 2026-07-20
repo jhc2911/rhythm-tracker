@@ -64,6 +64,7 @@ async function loadRecords() {
 
     renderTable(fetchedData);
     updateSongTitleDisplay();
+    renderStatsTable();
 }
 
 // 공통 정렬 로직 함수
@@ -275,4 +276,106 @@ async function saveRecord() {
         alert('기록과 클리어 상태가 성공적으로 반영되었습니다!');
         loadRecords(); // [유지 확인] 사용자가 보고 있던 정렬 상태 그대로 유지하면서 갱신됩니다.
     }
+}
+
+// 📊 레벨 1~19 통계 계산 및 렌더링 함수
+function renderStatsTable() {
+    const statsBody = document.getElementById('statsTableBody');
+    if (!statsBody) return;
+    statsBody.innerHTML = '';
+
+    // 레벨 1부터 19까지 데이터를 모을 배열 초기화 (0번 인덱스는 비워둠)
+    const stats = Array.from({ length: 20 }, () => ({
+        total: 0, applus: 0, ap: 0, fc: 0, clear: 0
+    }));
+
+    // 전체 합계를 위한 객체
+    const totalStats = { total: 0, applus: 0, ap: 0, fc: 0, clear: 0 };
+
+    // 1. 데이터 집계
+    fetchedData.forEach(item => {
+        const song = item.songs;
+        if (!song) return;
+
+        // 4가지 난이도 각각 매핑 검사
+        const difficulties = [
+            { score: item.casual_score, status: item.casual_status, level: song.casual_level },
+            { score: item.normal_score, status: item.normal_status, level: song.normal_level },
+            { score: item.hard_score, status: item.hard_status, level: song.hard_level },
+            { score: item.expert_score, status: item.expert_status, level: song.expert_level }
+        ];
+
+        difficulties.forEach(diff => {
+            // 점수가 기록되어 있고 레벨이 1~19 사이인 경우에만 집계
+            if (diff.score !== null && diff.score !== undefined && diff.level >= 1 && diff.level <= 19) {
+                const lv = diff.level;
+                stats[lv].total += 1;
+                totalStats.total += 1;
+
+                // 상위 등급이 하위 등급의 조건을 포함하여 누적 카운트 처리
+                if (diff.status === 'AP+') {
+                    stats[lv].applus += 1;
+                    stats[lv].ap += 1;
+                    stats[lv].fc += 1;
+                    stats[lv].clear += 1;
+
+                    totalStats.applus += 1;
+                    totalStats.ap += 1;
+                    totalStats.fc += 1;
+                    totalStats.clear += 1;
+                } else if (diff.status === 'AP') {
+                    stats[lv].ap += 1;
+                    stats[lv].fc += 1;
+                    stats[lv].clear += 1;
+
+                    totalStats.ap += 1;
+                    totalStats.fc += 1;
+                    totalStats.clear += 1;
+                } else if (diff.status === 'FC') {
+                    stats[lv].fc += 1;
+                    stats[lv].clear += 1;
+
+                    totalStats.fc += 1;
+                    totalStats.clear += 1;
+                } else {
+                    // CLEAR인 경우
+                    stats[lv].clear += 1;
+                    totalStats.clear += 1;
+                }
+            }
+        });
+    });
+
+    // 비율 구하기 헬퍼 함수
+    const getRateStr = (count, total) => {
+        if (total === 0) return '(0.0%)';
+        return `(${(count / total * 100).toFixed(1)}%)`;
+    };
+
+    // 2. 레벨 1~19 행 생성 및 렌더링
+    for (let lv = 1; lv <= 19; lv++) {
+        const row = stats[lv];
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+            <td style="font-weight: bold; color: #333;">Level ${lv}</td>
+            <td><span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span></td>
+            <td><span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span></td>
+            <td><span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span></td>
+            <td><span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span></td>
+        `;
+        statsBody.appendChild(tr);
+    }
+
+    // 3. 맨 아래 TOTAL 행 추가
+    const totalTr = document.createElement('tr');
+    totalTr.className = 'total-row';
+    totalTr.innerHTML = `
+        <td>TOTAL</td>
+        <td><span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span></td>
+        <td><span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span></td>
+        <td><span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span></td>
+        <td><span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span></td>
+    `;
+    statsBody.appendChild(totalTr);
 }
