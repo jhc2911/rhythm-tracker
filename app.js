@@ -4,8 +4,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let fetchedData = [];
-let currentSortColumn = '';
-let isAscending = true;
+// [기본 정렬 설정] 최초 로드 시 '곡 제목' 기준으로 오름차순 정렬하기 위한 기본값 설정
+let currentSortColumn = 'title'; 
+let isAscending = true;          
 
 window.onload = async function() {
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -54,11 +55,43 @@ async function loadRecords() {
     }
 
     fetchedData = data || [];
+
+    // [수정] 무조건 'title'로 초기화하지 않고, '현재 활성화된 정렬 기준'을 그대로 유지하여 정렬을 수행합니다.
+    applySort(currentSortColumn, isAscending);
+
+    // 정렬 삼각형 아이콘 UI 상태 업데이트
+    updateSortIcons();
+
     renderTable(fetchedData);
     updateSongTitleDisplay();
 }
 
-// ✨ [수정] 클리어 상태(CLEAR, FC, AP, AP+) 데이터 조건 렌더링 헬퍼 함수
+// 공통 정렬 로직 함수
+function applySort(column, ascending) {
+    fetchedData.sort((a, b) => {
+        let valA, valB;
+        if (column === 'title') {
+            valA = a.songs ? a.songs.title.toLowerCase() : '';
+            valB = b.songs ? b.songs.title.toLowerCase() : '';
+            return ascending ? valA.localeCompare(valB, 'ko', { sensitivity: 'base' }) : valB.localeCompare(valA, 'ko', { sensitivity: 'base' });
+        } else {
+            valA = a[column] === null || a[column] === undefined ? -1 : a[column];
+            valB = b[column] === null || b[column] === undefined ? -1 : b[column];
+            return ascending ? valA - valB : valB - valA;
+        }
+    });
+}
+
+// 정렬 상태에 따라 표 헤더의 삼각형(▲/▼) 아이콘을 업데이트하는 함수
+function updateSortIcons() {
+    document.querySelectorAll('.sort-icon').forEach(icon => icon.innerText = '↕');
+    const currentIcon = document.getElementById(`icon-${currentSortColumn}`);
+    if (currentIcon) {
+        currentIcon.innerText = isAscending ? '▲' : '▼';
+    }
+}
+
+// 클리어 상태(CLEAR, FC, AP, AP+) 데이터 조건 렌더링 헬퍼 함수
 function getScoreHTML(score, status) {
     if (score === null || score === undefined) return '<span style="color:#aaa">-</span>';
     
@@ -72,7 +105,7 @@ function getScoreHTML(score, status) {
         styleClass = 'status-ap';
         badgeHTML = '<span class="status-badge badge-ap">AP</span>';
     } else if (status === 'AP+') {
-        styleClass = 'status-applus'; // 영롱하게 흐르는 애니메이션 적용
+        styleClass = 'status-applus'; 
         badgeHTML = '<span class="status-badge badge-applus">AP+</span>';
     }
 
@@ -156,6 +189,7 @@ function updateSongTitleDisplay() {
     }
 }
 
+// 사용자가 헤더를 수동으로 클릭했을 때의 정렬 처리
 function sortTable(column) {
     if (currentSortColumn === column) {
         isAscending = !isAscending;
@@ -164,22 +198,8 @@ function sortTable(column) {
         isAscending = true;
     }
 
-    document.querySelectorAll('.sort-icon').forEach(icon => icon.innerText = '↕');
-    const currentIcon = document.getElementById(`icon-${column}`);
-    if (currentIcon) currentIcon.innerText = isAscending ? '▲' : '▼';
-
-    fetchedData.sort((a, b) => {
-        let valA, valB;
-        if (column === 'title') {
-            valA = a.songs ? a.songs.title : '';
-            valB = b.songs ? b.songs.title : '';
-            return isAscending ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        } else {
-            valA = a[column] || 0;
-            valB = b[column] || 0;
-            return isAscending ? valA - valB : valB - valA;
-        }
-    });
+    updateSortIcons();
+    applySort(currentSortColumn, isAscending);
     renderTable(fetchedData);
 }
 
@@ -243,6 +263,6 @@ async function saveRecord() {
         alert('점수 저장 실패: ' + recordError.message);
     } else {
         alert('기록과 클리어 상태가 성공적으로 반영되었습니다!');
-        loadRecords();
+        loadRecords(); // [유지 확인] 사용자가 보고 있던 정렬 상태 그대로 유지하면서 갱신됩니다.
     }
 }

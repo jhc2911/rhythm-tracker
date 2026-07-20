@@ -218,13 +218,14 @@
 
         /* 2. FULL COMBO: 노랑 ~ 빨강 스펙트럼 그라데이션 */
         .status-fc {
-            background: linear-gradient(90deg, #ffeb3b 0%, #ff9800 50%, #f44336 100%);
+            background: linear-gradient(90deg, #ffd43b 0%, #ff922b 60%, #f03e3e 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             text-fill-color: transparent;
-            filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.15));
-        }
+            /* [가독성 개선] 글자 외곽에 얇은 어두운 음영을 깔아 보라색 배경 위에서도 노란색이 선명하게 보이도록 처리 */
+            filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.2)) drop-shadow(0px 0px 1px rgba(133, 100, 4, 0.5));
+}
 
         /* 3. ALL PERFECT: 파랑 ~ 보라 ~ 핑크 청량한 스펙트럼 그라데이션 */
         .status-ap {
