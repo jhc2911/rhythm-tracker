@@ -1,5 +1,5 @@
 // 본인의 Supabase 설정값으로 대체하세요
-const SUPABASE_URL = 'qpcczmuwydpwpwpskoej'; 
+const SUPABASE_URL = 'https://qpcczmuwydpwpwpskoej.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2N6bXV3eWRwd3B3cHNrb2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NDgzNDEsImV4cCI6MjEwMDEyNDM0MX0.qje22MHokVuAXwrISej1KDrhFbFZFYgluzYwwdoO82I';
 
 // Supabase 클라이언트 초기화
