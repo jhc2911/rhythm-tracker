@@ -92,12 +92,22 @@ function updateSortIcons() {
     }
 }
 
-// 클리어 상태(CLEAR, FC, AP, AP+) 데이터 조건 렌더링 헬퍼 함수
-function getScoreHTML(score, status) {
+// 점수와 클리어 상태, 해당 난이도의 총 노트수를 받아 렌더링하는 함수 (AP 전용 차감 계산 적용)
+function getScoreHTML(score, status, totalNotes) {
     if (score === null || score === undefined) return '<span style="color:#aaa">-</span>';
     
     let styleClass = 'status-clear';
     let badgeHTML = '';
+    let missedText = ''; // AP 상태에서 Perfect+를 놓친 개수를 담을 변수
+
+    // 💡 [수정] 오직 'AP' 상태일 때만 만점(AP+) 점수와 비교하여 틀린 개수를 계산합니다.
+    if (status === 'AP' && totalNotes) {
+        const maxScore = 1000000 + totalNotes; // 이 곡의 만점(AP+) 점수
+        if (score < maxScore) {
+            const missedCount = maxScore - score; // 만점에서 모자란 점수 = Perfect+가 아닌 일반 Perfect 판정 개수
+            missedText = `<span style="font-size: 11px; color: #ff6b6b; font-weight: normal; margin-left: 4px;">(-${missedCount})</span>`;
+        }
+    }
 
     if (status === 'FC') {
         styleClass = 'status-fc';
@@ -110,7 +120,8 @@ function getScoreHTML(score, status) {
         badgeHTML = '<span class="status-badge badge-applus">AP+</span>';
     }
 
-    return `<span class="score-text ${styleClass}">${score.toLocaleString()}</span>${badgeHTML}`;
+    // 점수 텍스트와 계산된 개수(-명수), 뱃지를 차례대로 결합하여 반환합니다.
+    return `<span class="score-text ${styleClass}">${score.toLocaleString()}</span>${missedText}${badgeHTML}`;
 }
 
 // 2. 테이블 렌더링 (곡 ID 열 제거 버전)
