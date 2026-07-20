@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>리듬게임 기록 관리 - 로그인</title>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h2 { color: #333; margin-bottom: 24px; }
+        .input-group { margin-bottom: 16px; text-align: left; }
+        label { display: block; margin-bottom: 6px; color: #666; font-size: 14px; }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        input:focus { border-color: #2ecc71; outline: none; }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #27ae60; }
+        .error-msg { color: #e74c3c; font-size: 14px; margin-top: 12px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="login-container">
+    <h2>🎵 기록 관리 로그인</h2>
+    <div class="input-group">
+        <label for="email">이메일 주소</label>
+        <input type="email" id="email" placeholder="example@email.com">
+    </div>
+    <div class="input-group">
+        <label for="password">비밀번호</label>
+        <input type="password" id="password" placeholder="비밀번호 입력">
+    </div>
+    <button onclick="handleLogin()">로그인</button>
+    <div id="errorMsg" class="error-msg"></div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://qpcczmuwydpwpwpskoej.supabase.co'; 
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2N6bXV3eWRwd3B3cHNrb2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NDgzNDEsImV4cCI6MjEwMDEyNDM0MX0.qje22MHokVuAXwrISej1KDrhFbFZFYgluzYwwdoO82I';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // 페이지 접속 시 이미 로그인되어 있다면 메인 페이지로 이동
+    window.onload = async function() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            window.location.href = 'index.html';
+        }
+    };
+
+    async function handleLogin() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const errorMsg = document.getElementById('errorMsg');
+
+        errorMsg.style.display = 'none';
+
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password,
+        });
+
+        if (error) {
+            errorMsg.innerText = '로그인 실패: ' + error.message;
+            errorMsg.style.display = 'block';
+        } else {
+            // 로그인 성공 시 기록 페이지(index.html)로 이동
+            window.location.href = 'index.html';
+        }
+    }
+</script>
+
+</body>
+</html>
