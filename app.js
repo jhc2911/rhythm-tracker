@@ -107,8 +107,7 @@ function getScoreHTML(score, status, totalNotes) {
         const maxScore = 1000000 + totalNotes;
         if (score < maxScore) {
             const missedCount = maxScore - score;
-            // 마진을 4px로 살짝 줄여 여백을 최적화합니다.
-            missedText = `<span style="font-size: 11px; color: #ff6b6b; font-weight: normal; margin-left: 4px; display: inline-block; vertical-align: middle;">(-${missedCount})</span>`;
+            missedText = `<span style="font-size: 11px; color: #ff6b6b; font-weight: normal; margin-left: 4px;">(-${missedCount})</span>`;
         }
     }
 
@@ -123,13 +122,13 @@ function getScoreHTML(score, status, totalNotes) {
         badgeHTML = '<span class="status-badge badge-applus">AP+</span>';
     }
 
-    // 💡 배지 영역의 너비를 75px -> 60px로 줄여 중앙 정렬 균형을 맞춥니다.
+    // 💡 고정 너비(60px)를 과감히 제거하고 content 두께만큼만 차지하게 유연한 flex 구조로 변경
     return `
-        <div style="display: inline-flex; align-items: center; justify-content: center; width: 100%;">
-            <span class="score-text ${styleClass}" style="text-align: right;">${score.toLocaleString()}</span>
-            <div style="display: inline-flex; align-items: center; width: 60px; text-align: left;">
+        <div style="display: inline-flex; align-items: center; justify-content: flex-start; text-align: left;">
+            <span class="score-text ${styleClass}">${score.toLocaleString()}</span>
+            <span style="display: inline-flex; align-items: center; margin-left: 6px;">
                 ${badgeHTML}${missedText}
-            </div>
+            </span>
         </div>
     `;
 }
@@ -152,13 +151,12 @@ function renderTable(dataList) {
         tr.style.cursor = 'pointer';
         tr.onclick = function() { selectSong(item.song_id); };
 
-        // 💡 투명 여백 공간의 너비를 상단 점수 영역과 똑같이 60px로 맞춰 세로 정렬을 유지합니다.
+        // 💡 하단 레벨 배지도 가짜 빈 공간 없이 텍스트 크기만큼만 정렬되도록 변경
         const l = (level) => {
             if (level === null || level === undefined) return '';
             return `
-                <div style="display: inline-flex; align-items: center; justify-content: center; width: 100%; margin-top: 2px;">
-                    <div class="level-badge" style="text-align: right; font-size: 11px; color: #888;">(Lv.${level})</div>
-                    <div style="width: 60px;"></div>
+                <div style="font-size: 11px; color: #888; margin-top: 3px; text-align: center; width: 100%;">
+                    (Lv.${level})
                 </div>
             `;
         };
@@ -171,15 +169,16 @@ function renderTable(dataList) {
         const songCellClass = isGraduated ? 'song-info-cell graduated-song-cell' : 'song-info-cell';
         const masterBadge = isGraduated ? '<span class="graduated-badge">🏅 MASTER</span>' : '';
 
+        // 💡 각 td 셀 내부를 'text-align: center'로 완전히 잡아주어 알맹이 데이터가 무조건 정중앙에 수렴하도록 처리
         tr.innerHTML = `
             <td class="${songCellClass}">
                 <strong class="song-title" style="display:inline-block; vertical-align:middle;">${song.title}</strong>${masterBadge}
                 <span class="song-composer" style="display:block; margin-top:2px;">${song.composer || 'Unknown Composer'}</span>
             </td>
-            <td class="col-casual">${getScoreHTML(item.casual_score, item.casual_status, song.casual_notes)}${l(song.casual_level)}</td>
-            <td class="col-normal">${getScoreHTML(item.normal_score, item.normal_status, song.normal_notes)}${l(song.normal_level)}</td>
-            <td class="col-hard">${getScoreHTML(item.hard_score, item.hard_status, song.hard_notes)}${l(song.hard_level)}</td>
-            <td class="col-expert">${getScoreHTML(item.expert_score, item.expert_status, song.expert_notes)}${l(song.expert_level)}</td>
+            <td class="col-casual" style="text-align: center; vertical-align: middle;">${getScoreHTML(item.casual_score, item.casual_status, song.casual_notes)}${l(song.casual_level)}</td>
+            <td class="col-normal" style="text-align: center; vertical-align: middle;">${getScoreHTML(item.normal_score, item.normal_status, song.normal_notes)}${l(song.normal_level)}</td>
+            <td class="col-hard" style="text-align: center; vertical-align: middle;">${getScoreHTML(item.hard_score, item.hard_status, song.hard_notes)}${l(song.hard_level)}</td>
+            <td class="col-expert" style="text-align: center; vertical-align: middle;">${getScoreHTML(item.expert_score, item.expert_status, song.expert_notes)}${l(song.expert_level)}</td>
         `;
         tableBody.appendChild(tr);
     });
