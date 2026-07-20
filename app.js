@@ -18,16 +18,11 @@ window.onload = async function() {
 };
 
 async function handleLogout() {
-    const { error } = await supabaseClient.auth.signOut();
-    if (error) {
-        alert('로그아웃 실패: ' + error.message);
-    } else {
-        alert('로그아웃 되었습니다.');
-        window.location.href = 'login.html';
-    }
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
 }
 
-// 1. 데이터 불러오기
+// 1. 데이터 불러오기 (새로운 status 컬럼 추가)
 async function loadRecords() {
     const tableBody = document.getElementById('tableBody');
     
@@ -39,6 +34,10 @@ async function loadRecords() {
             normal_score,
             hard_score,
             expert_score,
+            casual_status,
+            normal_status,
+            hard_status,
+            expert_status,
             songs (
                 title,
                 composer,
@@ -51,16 +50,33 @@ async function loadRecords() {
 
     if (error) {
         tableBody.innerHTML = `<tr><td colspan="6" style="color:red;">오류 발생: ${error.message}</td></tr>`;
-        console.error(error);
         return;
     }
 
     fetchedData = data || [];
     renderTable(fetchedData);
-    updateSongTitleDisplay(); // 로드 완료 후 화면 상태 리프레시
+    updateSongTitleDisplay();
 }
 
-// 2. 데이터를 테이블 구조로 화면에 그리는 함수
+// ✨ 클리어 상태(CLEAR, FC, AP)에 따른 클래스 및 배지 매핑 헬퍼 함수
+function getScoreHTML(score, status) {
+    if (score === null || score === undefined) return '<span style="color:#aaa">-</span>';
+    
+    let styleClass = 'status-clear';
+    let badgeHTML = '';
+
+    if (status === 'FC') {
+        styleClass = 'status-fc';
+        badgeHTML = '<span class="status-badge badge-fc">FC</span>';
+    } else if (status === 'AP') {
+        styleClass = 'status-ap';
+        badgeHTML = '<span class="status-badge badge-ap">AP</span>';
+    }
+
+    return `<span class="score-text ${styleClass}">${score.toLocaleString()}</span>${badgeHTML}`;
+}
+
+// 2. 테이블 렌더링
 function renderTable(dataList) {
     const tableBody = document.getElementById('tableBody');
     tableBody.innerHTML = '';
@@ -78,7 +94,6 @@ function renderTable(dataList) {
         tr.style.cursor = 'pointer';
         tr.onclick = function() { selectSong(item.song_id); };
 
-        const s = (score) => (score !== null && score !== undefined) ? score.toLocaleString() : '-';
         const l = (level) => (level !== null && level !== undefined) ? `(Lv.${level})` : '';
 
         tr.innerHTML = `
@@ -87,23 +102,35 @@ function renderTable(dataList) {
                 <strong class="song-title">${song.title}</strong>
                 <span class="song-composer">${song.composer || 'Unknown Composer'}</span>
             </td>
-            <td class="col-casual"><strong>${s(item.casual_score)}</strong><br><div class="level-badge">${l(song.casual_level)}</div></td>
-            <td class="col-normal"><strong>${s(item.normal_score)}</strong><br><div class="level-badge">${l(song.normal_level)}</div></td>
-            <td class="col-hard"><strong>${s(item.hard_score)}</strong><br><div class="level-badge">${l(song.hard_level)}</div></td>
-            <td class="col-expert"><strong>${s(item.expert_score)}</strong><br><div class="level-badge">${l(song.expert_level)}</div></td>
+            <td class="col-casual">${getScoreHTML(item.casual_score, item.casual_status)}<br><div class="level-badge">${l(song.casual_level)}</div></td>
+            <td class="col-normal">${getScoreHTML(item.normal_score, item.normal_status)}<br><div class="level-badge">${l(song.normal_level)}</div></td>
+            <td class="col-hard">${getScoreHTML(item.hard_score, item.hard_status)}<br><div class="level-badge">${l(song.hard_level)}</div></td>
+            <td class="col-expert">${getScoreHTML(item.expert_score, item.expert_status)}<br><div class="level-badge">${l(song.expert_level)}</div></td>
         `;
         tableBody.appendChild(tr);
     });
 }
 
-// 표에서 곡 클릭 시 처리
+// 표에서 행 클릭 시 입력 폼에 바인딩 (상태 드롭다운 포함)
 function selectSong(songId) {
     document.getElementById('songId').value = songId;
     updateSongTitleDisplay();
+    
+    const record = fetchedData.find(item => item.song_id === songId);
+    if (record) {
+        document.getElementById('casualScore').value = record.casual_score || '';
+        document.getElementById('normalScore').value = record.normal_score || '';
+        document.getElementById('hardScore').value = record.hard_score || '';
+        document.getElementById('expertScore').value = record.expert_score || '';
+        
+        document.getElementById('casualStatus').value = record.casual_status || 'CLEAR';
+        document.getElementById('normalStatus').value = record.normal_status || 'CLEAR';
+        document.getElementById('hardStatus').value = record.hard_status || 'CLEAR';
+        document.getElementById('expertStatus').value = record.expert_status || 'CLEAR';
+    }
     document.getElementById('songId').focus();
 }
 
-// ✨ [추가] 곡 ID 입력 혹은 선택 시 우측에 곡 제목 표시 및 신규 등록 창 활성화 함수
 function updateSongTitleDisplay() {
     const songIdInput = document.getElementById('songId').value;
     const displayArea = document.getElementById('songTitleDisplay');
@@ -114,13 +141,11 @@ function updateSongTitleDisplay() {
     }
 
     const targetId = parseInt(songIdInput);
-    // 전역 변수에서 일치하는 곡 검색
     const found = fetchedData.find(item => item.song_id === targetId);
 
     if (found && found.songs) {
-        displayArea.innerHTML = `선택된 곡: <span style="color:#2ec71">${found.songs.title}</span>`;
+        displayArea.innerHTML = `선택된 곡: <span style="color:#2ecc71">${found.songs.title}</span>`;
     } else {
-        // DB에 없는 새로운 곡 ID일 경우 직접 제목을 타이핑할 수 있게 인풋 필드를 보여줍니다.
         displayArea.innerHTML = `
             <span class="new-song-badge">신규 악곡 등록 모드</span><br>
             <input type="text" id="newSongTitle" class="new-title-input" style="display:block;" placeholder="새로운 곡의 제목을 입력하세요">
@@ -128,7 +153,6 @@ function updateSongTitleDisplay() {
     }
 }
 
-// 3. 정렬 처리 함수
 function sortTable(column) {
     if (currentSortColumn === column) {
         isAscending = !isAscending;
@@ -139,9 +163,7 @@ function sortTable(column) {
 
     document.querySelectorAll('.sort-icon').forEach(icon => icon.innerText = '↕');
     const currentIcon = document.getElementById(`icon-${column}`);
-    if (currentIcon) {
-        currentIcon.innerText = isAscending ? '▲' : '▼';
-    }
+    if (currentIcon) currentIcon.innerText = isAscending ? '▲' : '▼';
 
     fetchedData.sort((a, b) => {
         let valA, valB;
@@ -155,11 +177,10 @@ function sortTable(column) {
             return isAscending ? valA - valB : valB - valA;
         }
     });
-
     renderTable(fetchedData);
 }
 
-// 4. 데이터 저장 및 안전한 수정 + [신규 등록 확장]
+// 4. 데이터 저장 (클리어 상태 포함 업서트)
 async function saveRecord() {
     const songId = document.getElementById('songId').value;
     if (!songId) {
@@ -173,37 +194,42 @@ async function saveRecord() {
     const hardInput = document.getElementById('hardScore').value;
     const expertInput = document.getElementById('expertScore').value;
 
+    const casualStatus = document.getElementById('casualStatus').value;
+    const normalStatus = document.getElementById('normalStatus').value;
+    const hardStatus = document.getElementById('hardStatus').value;
+    const expertStatus = document.getElementById('expertStatus').value;
+
     const existingRecord = fetchedData.find(item => item.song_id === targetId);
 
-    // 💡 만약 새로운 곡 ID라면 songs 테이블에 먼저 저장 처리를 진행합니다.
     if (!existingRecord) {
         const newTitleInput = document.getElementById('newSongTitle');
         const newTitle = newTitleInput ? newTitleInput.value.trim() : '';
-        
         if (!newTitle) {
             alert('새로운 곡의 ID입니다. 악곡 제목을 입력해주세요.');
             if(newTitleInput) newTitleInput.focus();
             return;
         }
 
-        // songs 테이블에 새 곡 정보 입력
         const { error: songError } = await supabaseClient
             .from('songs')
             .upsert([{ id: targetId, title: newTitle, composer: 'Unknown Composer' }]);
 
         if (songError) {
-            alert('새로운 곡 등록 실패(songs): ' + songError.message);
+            alert('새로운 곡 등록 실패: ' + songError.message);
             return;
         }
     }
 
-    // records 테이블 데이터 구성 및 업서트
     const rowData = {
         song_id: targetId,
         casual_score: casualInput ? parseInt(casualInput) : (existingRecord ? existingRecord.casual_score : null),
         normal_score: normalInput ? parseInt(normalInput) : (existingRecord ? existingRecord.normal_score : null),
         hard_score: hardInput ? parseInt(hardInput) : (existingRecord ? existingRecord.hard_score : null),
-        expert_score: expertInput ? parseInt(expertInput) : (existingRecord ? existingRecord.expert_score : null)
+        expert_score: expertInput ? parseInt(expertInput) : (existingRecord ? existingRecord.expert_score : null),
+        casual_status: casualStatus,
+        normal_status: normalStatus,
+        hard_status: hardStatus,
+        expert_status: expertStatus
     };
 
     const { error: recordError } = await supabaseClient
@@ -213,15 +239,7 @@ async function saveRecord() {
     if (recordError) {
         alert('점수 저장 실패: ' + recordError.message);
     } else {
-        alert('기록이 성공적으로 반영되었습니다!');
-        
-        // 인풋 초기화
-        document.getElementById('songId').value = '';
-        document.getElementById('casualScore').value = '';
-        document.getElementById('normalScore').value = '';
-        document.getElementById('hardScore').value = '';
-        document.getElementById('expertScore').value = '';
-        
+        alert('기록과 클리어 상태가 반영되었습니다!');
         loadRecords();
     }
 }

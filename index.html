@@ -14,7 +14,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             padding: 30px;
@@ -52,7 +52,6 @@
         }
         .form-section h3 { margin-top: 0; margin-bottom: 15px; color: #444; }
         
-        /* 곡 ID 및 제목 연동 영역 */
         .id-input-container {
             display: flex;
             align-items: flex-end;
@@ -78,7 +77,6 @@
             box-sizing: border-box;
         }
         
-        /* 실시간 곡 제목 표시 영역 */
         .song-name-display {
             flex: 2;
             padding-bottom: 8px;
@@ -102,7 +100,7 @@
             border: 1px solid #e67e22;
             border-radius: 4px;
             font-size: 14px;
-            display: none; /* 기본 숨김 */
+            display: none;
         }
 
         /* 난이도별 4열 카드 배치 */
@@ -125,15 +123,16 @@
             font-size: 14px;
             margin-bottom: 8px;
         }
-        .score-card input {
+        .score-card input, .score-card select {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
             box-sizing: border-box;
-            font-size: 16px;
-            text-align: right;
+            font-size: 15px;
+            margin-bottom: 8px;
         }
+        .score-card input { text-align: right; }
 
         /* 난이도 포인트 컬러 */
         .card-casual { border-top-color: #4d7c53; background-color: #f4fdf5; }
@@ -171,7 +170,7 @@
             background: white;
         }
         th, td {
-            padding: 12px 15px;
+            padding: 12px 10px;
             text-align: center;
             border-bottom: 1px solid #eee;
         }
@@ -185,7 +184,7 @@
         th:hover { background-color: #f1f2f4; }
         .sort-icon { font-size: 12px; margin-left: 3px; color: #aaa; }
 
-        /* [수정] 테이블 배경색 농도 강화 (투명도 약 12~14% 적용) */
+        /* 테이블 배경색 농도 유지 */
         .col-casual { background-color: rgba(77, 124, 83, 0.13); }
         .col-normal { background-color: rgba(191, 161, 40, 0.12); }
         .col-hard { background-color: rgba(166, 50, 68, 0.12); }
@@ -198,24 +197,55 @@
             margin-top: 3px;
         }
         
-        tbody tr:hover {
-            background-color: #f1f3f7;
+        tbody tr:hover { background-color: #f1f3f7; }
+        
+        .song-info-cell { text-align: left; }
+        .song-title { font-size: 15px; color: #222; display: block; margin-bottom: 2px; }
+        .song-composer { font-size: 12px; color: #777; display: block; }
+
+        /* ✨ [핵심] 클리어 상태별 텍스트 스펙트럼 그라데이션 효과 */
+        .score-text {
+            font-size: 16px;
+            font-weight: bold;
+            display: inline-block;
         }
         
-        .song-info-cell {
-            text-align: left;
+        /* 1. 단순 클리어: 선명한 노란색/주황색 톤 */
+        .status-clear {
+            color: #f39c12; 
+            text-shadow: 0 0 1px rgba(0,0,0,0.1);
         }
-        .song-title {
-            font-size: 15px;
-            color: #222;
-            display: block;
-            margin-bottom: 2px;
+
+        /* 2. FULL COMBO: 노랑 ~ 빨강 스펙트럼 그라데이션 */
+        .status-fc {
+            background: linear-gradient(90deg, #ffeb3b 0%, #ff9800 50%, #f44336 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.15));
         }
-        .song-composer {
-            font-size: 12px;
-            color: #777;
-            display: block;
+
+        /* 3. ALL PERFECT: 파랑 ~ 보라 ~ 핑크 청량한 스펙트럼 그라데이션 */
+        .status-ap {
+            background: linear-gradient(90deg, #4dabf7 0%, #748ffc 35%, #b57bed 70%, #f783ac 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.15));
         }
+
+        .status-badge {
+            font-size: 10px;
+            font-weight: bold;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
+        .badge-fc { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .badge-ap { background: #e8daff; color: #6f42c1; border: 1px solid #d6bbfb; }
     </style>
 </head>
 <body>
@@ -233,32 +263,54 @@
         <div class="id-input-container">
             <div class="id-input-group">
                 <label for="songId">곡 ID (songs 테이블 id)</label>
-                <!-- 입력 시 실시간 반영을 위해 oninput 이벤트 추가 -->
                 <input type="number" id="songId" placeholder="예: 1" oninput="updateSongTitleDisplay()">
             </div>
-            <!-- 실시간 곡 제목 출력 란 -->
             <div class="song-name-display" id="songTitleDisplay">
                 <span style="color:#aaa; font-weight:normal;">곡 ID를 입력하거나 아래 표에서 곡을 선택하세요.</span>
             </div>
         </div>
 
-        <label style="display:block; font-weight:bold; margin-bottom:8px; color:#555;">난이도별 점수 입력</label>
+        <label style="display:block; font-weight:bold; margin-bottom:8px; color:#555;">난이도별 점수 및 클리어 상태 입력</label>
         <div class="score-grid">
+            <!-- Casual -->
             <div class="score-card card-casual">
-                <label for="casualScore">Casual 점수</label>
+                <label for="casualScore">Casual 설정</label>
                 <input type="number" id="casualScore" placeholder="점수 입력">
+                <select id="casualStatus">
+                    <option value="CLEAR">CLEAR (단순 클리어)</option>
+                    <option value="FC">FULL COMBO</option>
+                    <option value="AP">ALL PERFECT</option>
+                </select>
             </div>
+            <!-- Normal -->
             <div class="score-card card-normal">
-                <label for="normalScore">Normal 점수</label>
+                <label for="normalScore">Normal 설정</label>
                 <input type="number" id="normalScore" placeholder="점수 입력">
+                <select id="normalStatus">
+                    <option value="CLEAR">CLEAR (단순 클리어)</option>
+                    <option value="FC">FULL COMBO</option>
+                    <option value="AP">ALL PERFECT</option>
+                </select>
             </div>
+            <!-- Hard -->
             <div class="score-card card-hard">
-                <label for="hardScore">Hard 점수</label>
+                <label for="hardScore">Hard 설정</label>
                 <input type="number" id="hardScore" placeholder="점수 입력">
+                <select id="hardStatus">
+                    <option value="CLEAR">CLEAR (단순 클리어)</option>
+                    <option value="FC">FULL COMBO</option>
+                    <option value="AP">ALL PERFECT</option>
+                </select>
             </div>
+            <!-- Expert -->
             <div class="score-card card-expert">
-                <label for="expertScore">Expert 점수</label>
+                <label for="expertScore">Expert 설정</label>
                 <input type="number" id="expertScore" placeholder="점수 입력">
+                <select id="expertStatus">
+                    <option value="CLEAR">CLEAR (단순 클리어)</option>
+                    <option value="FC">FULL COMBO</option>
+                    <option value="AP">ALL PERFECT</option>
+                </select>
             </div>
         </div>
 
@@ -266,7 +318,7 @@
     </div>
 
     <!-- 내 플레이 기록 목록 -->
-    <h2>내 플레이 기록 목록 <span style="font-size:14px; color:#888; font-weight:normal;">(항목을 클릭하면 정렬되며, 행을 누르면 상단 폼에 자동 입력됩니다)</span></h2>
+    <h2>내 플레이 기록 목록 <span style="font-size:14px; color:#888; font-weight:normal;">(행을 누르면 상단 폼에 자동 입력됩니다)</span></h2>
     <table>
         <thead>
             <tr>
