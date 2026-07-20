@@ -203,14 +203,14 @@
         .song-title { font-size: 15px; color: #222; display: block; margin-bottom: 2px; }
         .song-composer { font-size: 12px; color: #777; display: block; }
 
-        /* ✨ [핵심] 클리어 상태별 텍스트 스펙트럼 그라데이션 효과 */
+        /* 클리어 상태별 텍스트 디자인 효과 */
         .score-text {
             font-size: 16px;
             font-weight: bold;
             display: inline-block;
         }
         
-        /* 1. 단순 클리어: 선명한 노란색/주황색 톤 */
+        /* 1. CLEAR: 선명한 주황색 계열 단색 */
         .status-clear {
             color: #f39c12; 
             text-shadow: 0 0 1px rgba(0,0,0,0.1);
@@ -236,16 +236,43 @@
             filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.15));
         }
 
+        /* ✨ 4. ALL PERFECT+: AP와 색상은 같으나 영롱하게 흐르며 빛나는 그라데이션 애니메이션 추가 */
+        .status-applus {
+            background: linear-gradient(90deg, #4dabf7 0%, #b57bed 30%, #f783ac 50%, #4dabf7 70%, #b57bed 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            animation: shineEffect 2s linear infinite; /* 2초 주기로 그라데이션이 이동하며 반짝임 */
+            filter: drop-shadow(0px 0px 2px rgba(116, 143, 252, 0.6)); /* 발광 효과 추가 */
+        }
+
+        /* 그라데이션 위치를 이동시켜 반짝이는 느낌을 주는 키프레임 애니메이션 */
+        @keyframes shineEffect {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+
+        /* 우측 정보 배지 양식 */
         .status-badge {
             font-size: 10px;
             font-weight: bold;
             padding: 1px 4px;
             border-radius: 3px;
-            margin-left: 4px;
+            margin-left: 5px;
             vertical-align: middle;
+            display: inline-block;
         }
         .badge-fc { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
         .badge-ap { background: #e8daff; color: #6f42c1; border: 1px solid #d6bbfb; }
+        /* AP+ 골드네온 테두리 배지 */
+        .badge-applus { 
+            background: #e3fafc; 
+            color: #0c8599; 
+            border: 1px solid #99e9f2;
+            box-shadow: 0 0 4px rgba(12, 133, 153, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -277,9 +304,10 @@
                 <label for="casualScore">Casual 설정</label>
                 <input type="number" id="casualScore" placeholder="점수 입력">
                 <select id="casualStatus">
-                    <option value="CLEAR">CLEAR (단순 클리어)</option>
+                    <option value="CLEAR">CLEAR</option>
                     <option value="FC">FULL COMBO</option>
                     <option value="AP">ALL PERFECT</option>
+                    <option value="AP+">ALL PERFECT+</option>
                 </select>
             </div>
             <!-- Normal -->
@@ -287,9 +315,10 @@
                 <label for="normalScore">Normal 설정</label>
                 <input type="number" id="normalScore" placeholder="점수 입력">
                 <select id="normalStatus">
-                    <option value="CLEAR">CLEAR (단순 클리어)</option>
+                    <option value="CLEAR">CLEAR</option>
                     <option value="FC">FULL COMBO</option>
                     <option value="AP">ALL PERFECT</option>
+                    <option value="AP+">ALL PERFECT+</option>
                 </select>
             </div>
             <!-- Hard -->
@@ -297,9 +326,10 @@
                 <label for="hardScore">Hard 설정</label>
                 <input type="number" id="hardScore" placeholder="점수 입력">
                 <select id="hardStatus">
-                    <option value="CLEAR">CLEAR (단순 클리어)</option>
+                    <option value="CLEAR">CLEAR</option>
                     <option value="FC">FULL COMBO</option>
                     <option value="AP">ALL PERFECT</option>
+                    <option value="AP+">ALL PERFECT+</option>
                 </select>
             </div>
             <!-- Expert -->
@@ -307,9 +337,10 @@
                 <label for="expertScore">Expert 설정</label>
                 <input type="number" id="expertScore" placeholder="점수 입력">
                 <select id="expertStatus">
-                    <option value="CLEAR">CLEAR (단순 클리어)</option>
+                    <option value="CLEAR">CLEAR</option>
                     <option value="FC">FULL COMBO</option>
                     <option value="AP">ALL PERFECT</option>
+                    <option value="AP+">ALL PERFECT+</option>
                 </select>
             </div>
         </div>

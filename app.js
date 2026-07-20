@@ -22,7 +22,7 @@ async function handleLogout() {
     window.location.href = 'login.html';
 }
 
-// 1. 데이터 불러오기 (새로운 status 컬럼 추가)
+// 1. 데이터 불러오기
 async function loadRecords() {
     const tableBody = document.getElementById('tableBody');
     
@@ -58,7 +58,7 @@ async function loadRecords() {
     updateSongTitleDisplay();
 }
 
-// ✨ 클리어 상태(CLEAR, FC, AP)에 따른 클래스 및 배지 매핑 헬퍼 함수
+// ✨ [수정] 클리어 상태(CLEAR, FC, AP, AP+) 데이터 조건 렌더링 헬퍼 함수
 function getScoreHTML(score, status) {
     if (score === null || score === undefined) return '<span style="color:#aaa">-</span>';
     
@@ -71,6 +71,9 @@ function getScoreHTML(score, status) {
     } else if (status === 'AP') {
         styleClass = 'status-ap';
         badgeHTML = '<span class="status-badge badge-ap">AP</span>';
+    } else if (status === 'AP+') {
+        styleClass = 'status-applus'; // 영롱하게 흐르는 애니메이션 적용
+        badgeHTML = '<span class="status-badge badge-applus">AP+</span>';
     }
 
     return `<span class="score-text ${styleClass}">${score.toLocaleString()}</span>${badgeHTML}`;
@@ -111,7 +114,7 @@ function renderTable(dataList) {
     });
 }
 
-// 표에서 행 클릭 시 입력 폼에 바인딩 (상태 드롭다운 포함)
+// 표에서 행 클릭 시 입력 폼에 바인딩
 function selectSong(songId) {
     document.getElementById('songId').value = songId;
     updateSongTitleDisplay();
@@ -180,7 +183,7 @@ function sortTable(column) {
     renderTable(fetchedData);
 }
 
-// 4. 데이터 저장 (클리어 상태 포함 업서트)
+// 4. 데이터 저장
 async function saveRecord() {
     const songId = document.getElementById('songId').value;
     if (!songId) {
@@ -239,7 +242,7 @@ async function saveRecord() {
     if (recordError) {
         alert('점수 저장 실패: ' + recordError.message);
     } else {
-        alert('기록과 클리어 상태가 반영되었습니다!');
+        alert('기록과 클리어 상태가 성공적으로 반영되었습니다!');
         loadRecords();
     }
 }
