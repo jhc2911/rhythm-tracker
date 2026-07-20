@@ -46,6 +46,10 @@ async function loadRecords() {
                 normal_level,
                 hard_level,
                 expert_level
+                casual_notes,
+                normal_notes,
+                hard_notes,
+                expert_notes
             )
         `);
 
