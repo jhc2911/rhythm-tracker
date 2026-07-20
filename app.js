@@ -1,20 +1,23 @@
-// 본인의 Supabase 설정값으로 대체하세요
+// 본인의 Supabase 프로젝트 정보로 반드시 변경하세요! (https:// 와 .supabase.co 확인)
 const SUPABASE_URL = 'https://qpcczmuwydpwpwpskoej.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2N6bXV3eWRwd3B3cHNrb2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NDgzNDEsImV4cCI6MjEwMDEyNDM0MX0.qje22MHokVuAXwrISej1KDrhFbFZFYgluzYwwdoO82I';
 
-// Supabase 클라이언트 초기화
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 페이지가 로드되면 자동으로 데이터를 불러옵니다.
+// 불러온 데이터를 저장할 전역 변수 및 정렬 상태 기억 변수
+let fetchedData = [];
+let currentSortColumn = '';
+let isAscending = true;
+
 window.onload = function() {
     loadRecords();
 };
 
-// 1. 기록 불러오기 (Read)
+// 1. 데이터 불러오기
 async function loadRecords() {
-    const recordListDiv = document.getElementById('recordList');
+    const tableBody = document.getElementById('tableBody');
     
-    // records 테이블의 모든 점수와 함께, 연결된 songs 테이블의 제목, 작곡가, 레벨 데이터들을 한 번에 가져옵니다.
+    // 두 테이블을 join하여 필요한 필드들을 가져옵니다.
     const { data, error } = await supabase
         .from('records')
         .select(`
@@ -31,69 +34,93 @@ async function loadRecords() {
                 hard_level,
                 expert_level
             )
-        `)
-        .order('created_at', { ascending: false }); // 최근 기록이 위로 오도록 정렬
+        `);
 
     if (error) {
-        recordListDiv.innerHTML = '<p style="color:red;">데이터를 불러오는 중 오류가 발생했습니다.</p>';
+        tableBody.innerHTML = `<tr><td colspan="6" style="color:red;">오류 발생: ${error.message}</td></tr>`;
         console.error(error);
         return;
     }
 
     if (!data || data.length === 0) {
-        recordListDiv.innerHTML = '<p>등록된 플레이 기록이 없습니다. 상단에서 첫 기록을 등록해 보세요!</p>';
+        tableBody.innerHTML = '<tr><td colspan="6">등록된 데이터가 없습니다. DB 또는 RLS 설정을 확인하세요.</td></tr>';
         return;
     }
 
-    // 목록 비우고 새로 그리기
-    recordListDiv.innerHTML = '';
-    
-    data.forEach(item => {
+    // 전역 변수에 데이터 저장 후 렌더링
+    fetchedData = data;
+    renderTable(fetchedData);
+}
+
+// 2. 데이터를 테이블 구조로 화면에 그리는 함수
+function renderTable(dataList) {
+    const tableBody = document.getElementById('tableBody');
+    tableBody.innerHTML = '';
+
+    dataList.forEach(item => {
         const song = item.songs;
-        if (!song) return; // 연결된 곡 정보가 없으면 패스
+        if (!song) return;
 
-        const card = document.createElement('div');
-        card.className = 'record-card';
+        const tr = document.createElement('tr');
 
-        // 점수 값이 없으면(null 또는 빈 값) '-'로 표시하기 위한 함수
-        const displayScore = (score) => (score !== null && score !== undefined) ? score.toLocaleString() : '-';
-        // 레벨 정보 표시용 함수
-        const displayLevel = (level) => (level !== null && level !== undefined) ? `Lv.${level}` : 'Lv.-';
+        // null 처리용 헬퍼 함수
+        const s = (score) => (score !== null && score !== undefined) ? score.toLocaleString() : '-';
+        const l = (level) => (level !== null && level !== undefined) ? `(Lv.${level})` : '';
 
-        card.innerHTML = `
-            <div class="song-title">${song.title}</div>
-            <div class="song-composer">by ${song.composer || 'Unknown'} (곡 ID: ${item.song_id})</div>
-            
-            <table class="result-table">
-                <thead>
-                    <tr>
-                        <th class="text-casual">Casual</th>
-                        <th class="text-normal">Normal</th>
-                        <th class="text-hard">Hard</th>
-                        <th class="text-expert">Expert</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><small>${displayLevel(song.casual_level)}</small></td>
-                        <td><small>${displayLevel(song.normal_level)}</small></td>
-                        <td><small>${displayLevel(song.hard_level)}</small></td>
-                        <td><small>${displayLevel(song.expert_level)}</small></td>
-                    </tr>
-                    <tr>
-                        <td><strong>${displayScore(item.casual_score)}</strong></td>
-                        <td><strong>${displayScore(item.normal_score)}</strong></td>
-                        <td><strong>${displayScore(item.hard_score)}</strong></td>
-                        <td><strong>${displayScore(item.expert_score)}</strong></td>
-                    </tr>
-                </tbody>
-            </table>
+        tr.innerHTML = `
+            <td>${item.song_id}</td>
+            <td style="text-align: left;">
+                <strong>${song.title}</strong><br>
+                <small style="color:#888">${song.composer || ''}</small>
+            </td>
+            <td><strong>${s(item.casual_score)}</strong> <div class="level-badge">${l(song.casual_level)}</div></td>
+            <td><strong>${s(item.normal_score)}</strong> <div class="level-badge">${l(song.normal_level)}</div></td>
+            <td><strong>${s(item.hard_score)}</strong> <div class="level-badge">${l(song.hard_level)}</div></td>
+            <td><strong>${s(item.expert_score)}</strong> <div class="level-badge">${l(song.expert_level)}</div></td>
         `;
-        recordListDiv.appendChild(card);
+        tableBody.appendChild(tr);
     });
 }
 
-// 2. 기록 저장 및 수정하기 (Create / Update)
+// 3. 정렬 처리 함수 (클릭 시 호출)
+function sortTable(column) {
+    // 같은 컬럼을 연달아 누르면 차순 변경(오름차순 <-> 내림차순), 새로운 컬럼이면 오름차순 시작
+    if (currentSortColumn === column) {
+        isAscending = !isAscending;
+    } else {
+        currentSortColumn = column;
+        isAscending = true;
+    }
+
+    // 아이콘 초기화 및 변경
+    document.querySelectorAll('.sort-icon').forEach(icon => icon.innerText = '↕');
+    const currentIcon = document.getElementById(`icon-${column}`);
+    if (currentIcon) {
+        currentIcon.innerText = isAscending ? '▲' : '▼';
+    }
+
+    // 데이터 정렬 로직
+    fetchedData.sort((a, b) => {
+        let valA, valB;
+
+        // 문자열 및 중첩 구조 데이터 처리 추출
+        if (column === 'title') {
+            valA = a.songs ? a.songs.title : '';
+            valB = b.songs ? b.songs.title : '';
+            return isAscending ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else {
+            // 숫자 컬럼 정렬 (song_id, casual_score 등)
+            valA = a[column] || 0;
+            valB = b[column] || 0;
+            return isAscending ? valA - valB : valB - valA;
+        }
+    });
+
+    // 정렬된 결과로 테이블 다시 그리기
+    renderTable(fetchedData);
+}
+
+// 4. 데이터 저장 및 수정
 async function saveRecord() {
     const songId = document.getElementById('songId').value;
     const casualScore = document.getElementById('casualScore').value;
@@ -106,7 +133,6 @@ async function saveRecord() {
         return;
     }
 
-    // 입력받은 값을 데이터베이스 규격(정수형 또는 null)에 맞게 변환합니다.
     const rowData = {
         song_id: parseInt(songId),
         casual_score: casualScore ? parseInt(casualScore) : null,
@@ -115,26 +141,14 @@ async function saveRecord() {
         expert_score: expertScore ? parseInt(expertScore) : null
     };
 
-    // 꿀팁: Supabase의 upsert 기능을 쓰면, 이미 해당 곡(song_id)의 기록이 존재하면 '수정(Update)'을 하고, 없으면 '새로 저장(Insert)'을 알아서 해줍니다.
-    // 단, records 테이블의 song_id 컬럼에 Unique 제약조건이 걸려있어야 정상 작동합니다. 만약 중복 저장을 허용하고 싶다면 insert를 쓰시면 됩니다.
     const { error } = await supabase
         .from('records')
         .upsert([rowData], { onConflict: 'song_id' }); 
 
     if (error) {
         alert('저장 실패: ' + error.message);
-        console.error(error);
     } else {
-        alert('기록이 성공적으로 저장되었습니다!');
-        
-        // 입력창 초기화
-        document.getElementById('songId').value = '';
-        document.getElementById('casualScore').value = '';
-        document.getElementById('normalScore').value = '';
-        document.getElementById('hardScore').value = '';
-        document.getElementById('expertScore').value = '';
-        
-        // 목록 새로고침
+        alert('기록이 성공적으로 반영되었습니다!');
         loadRecords();
     }
 }
