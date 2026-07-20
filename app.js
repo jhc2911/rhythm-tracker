@@ -158,15 +158,16 @@ function renderTable(dataList) {
         const masterBadge = isGraduated ? '<span class="graduated-badge">🏅 MASTER</span>' : '';
 
         // 💡 <td>${item.song_id}</td> 부분을 완전히 제외하고 5개의 열만 렌더링합니다.
+        // 각 난이도 호출부에 song.casual_notes, song.normal_notes 등을 함께 넘겨줍니다.
         tr.innerHTML = `
             <td class="${songCellClass}">
                 <strong class="song-title" style="display:inline-block; vertical-align:middle;">${song.title}</strong>${masterBadge}
                 <span class="song-composer" style="display:block; margin-top:2px;">${song.composer || 'Unknown Composer'}</span>
             </td>
-            <td class="col-casual">${getScoreHTML(item.casual_score, item.casual_status)}<br><div class="level-badge">${l(song.casual_level)}</div></td>
-            <td class="col-normal">${getScoreHTML(item.normal_score, item.normal_status)}<br><div class="level-badge">${l(song.normal_level)}</div></td>
-            <td class="col-hard">${getScoreHTML(item.hard_score, item.hard_status)}<br><div class="level-badge">${l(song.hard_level)}</div></td>
-            <td class="col-expert">${getScoreHTML(item.expert_score, item.expert_status)}<br><div class="level-badge">${l(song.expert_level)}</div></td>
+            <td class="col-casual">${getScoreHTML(item.casual_score, item.casual_status, song.casual_notes)}<br><div class="level-badge">${l(song.casual_level)}</div></td>
+            <td class="col-normal">${getScoreHTML(item.normal_score, item.normal_status, song.normal_notes)}<br><div class="level-badge">${l(song.normal_level)}</div></td>
+            <td class="col-hard">${getScoreHTML(item.hard_score, item.hard_status, song.hard_notes)}<br><div class="level-badge">${l(song.hard_level)}</div></td>
+            <td class="col-expert">${getScoreHTML(item.expert_score, item.expert_status, song.expert_notes)}<br><div class="level-badge">${l(song.expert_level)}</div></td>
         `;
         tableBody.appendChild(tr);
     });
