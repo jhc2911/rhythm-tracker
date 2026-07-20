@@ -96,21 +96,19 @@ function updateSortIcons() {
     }
 }
 
-// 점수와 클리어 상태, 해당 난이도의 총 노트수를 받아 렌더링하는 함수 (배지 라인 칼정렬 버전)
 function getScoreHTML(score, status, totalNotes) {
     if (score === null || score === undefined) return '<span style="color:#aaa">-</span>';
     
     let styleClass = 'status-clear';
     let badgeHTML = '';
-    let missedText = ''; // AP 상태에서 Perfect+를 놓친 개수
+    let missedText = ''; 
 
-    // 오직 'AP' 상태일 때만 만점(AP+) 점수와 비교하여 틀린 개수를 계산
     if (status === 'AP' && totalNotes) {
         const maxScore = 1000000 + totalNotes;
         if (score < maxScore) {
             const missedCount = maxScore - score;
-            // 💡 배지 오른쪽에 깔끔하게 붙도록 마진 간격을 조정합니다.
-            missedText = `<span style="font-size: 11px; color: #ff6b6b; font-weight: normal; margin-left: 6px; display: inline-block; vertical-align: middle;">(-${missedCount})</span>`;
+            // 마진을 4px로 살짝 줄여 여백을 최적화합니다.
+            missedText = `<span style="font-size: 11px; color: #ff6b6b; font-weight: normal; margin-left: 4px; display: inline-block; vertical-align: middle;">(-${missedCount})</span>`;
         }
     }
 
@@ -125,11 +123,11 @@ function getScoreHTML(score, status, totalNotes) {
         badgeHTML = '<span class="status-badge badge-applus">AP+</span>';
     }
 
-    // 💡 전체 구조를 정렬 컨테이너로 감싸 점수와 배지 시작선을 완벽히 동기화합니다.
+    // 💡 배지 영역의 너비를 75px -> 60px로 줄여 중앙 정렬 균형을 맞춥니다.
     return `
         <div style="display: inline-flex; align-items: center; justify-content: center; width: 100%;">
             <span class="score-text ${styleClass}" style="text-align: right;">${score.toLocaleString()}</span>
-            <div style="display: inline-flex; align-items: center; width: 75px; text-align: left;">
+            <div style="display: inline-flex; align-items: center; width: 60px; text-align: left;">
                 ${badgeHTML}${missedText}
             </div>
         </div>
