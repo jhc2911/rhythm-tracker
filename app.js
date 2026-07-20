@@ -152,19 +152,17 @@ function renderTable(dataList) {
         tr.style.cursor = 'pointer';
         tr.onclick = function() { selectSong(item.song_id); };
 
-        // 💡 레벨 표시 구조 변경: 점수 영역과 동일한 레이아웃 구조를 적용하여 세로 정렬을 맞춥니다.
+        // 💡 투명 여백 공간의 너비를 상단 점수 영역과 똑같이 60px로 맞춰 세로 정렬을 유지합니다.
         const l = (level) => {
             if (level === null || level === undefined) return '';
             return `
                 <div style="display: inline-flex; align-items: center; justify-content: center; width: 100%; margin-top: 2px;">
                     <div class="level-badge" style="text-align: right; font-size: 11px; color: #888;">(Lv.${level})</div>
-                    <!-- 상단 점수의 배지 영역(75px)과 일치시키는 투명 여백 공간 -->
-                    <div style="width: 75px;"></div>
+                    <div style="width: 60px;"></div>
                 </div>
             `;
         };
 
-        // 모든 난이도가 AP+ 상태인지 확인 (곡 졸업 여부)
         const isGraduated = item.casual_status === 'AP+' && 
                             item.normal_status === 'AP+' && 
                             item.hard_status === 'AP+' && 
