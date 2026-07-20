@@ -7,21 +7,19 @@ let fetchedData = [];
 let currentSortColumn = '';
 let isAscending = true;
 
-// 🔒 [수정] 페이지 로드 시 로그인 상태를 먼저 체크합니다.
+// 페이지 로드 시 로그인 상태 체크
 window.onload = async function() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     
     if (!session) {
-        // 로그인 세션이 없으면 로그인 페이지로 튕겨냅니다.
         alert('로그인이 필요한 페이지입니다.');
         window.location.href = 'login.html';
     } else {
-        // 로그인 세션이 있으면 정상적으로 데이터를 불러옵니다.
         loadRecords();
     }
 };
 
-// 🔓 [추가] 로그아웃 처리 함수
+// 로그아웃 처리 함수
 async function handleLogout() {
     const { error } = await supabaseClient.auth.signOut();
     if (error) {
@@ -80,21 +78,23 @@ function renderTable(dataList) {
 
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
+        // 행 클릭 시 상단 입력 폼에 곡 ID 자동 세팅
         tr.onclick = function() { selectSong(item.song_id); };
 
         const s = (score) => (score !== null && score !== undefined) ? score.toLocaleString() : '-';
         const l = (level) => (level !== null && level !== undefined) ? `(Lv.${level})` : '';
 
+        // 각 난이도별 옅은 배경색 테마 클래스 추가 적용 (col-casual, col-normal 등)
         tr.innerHTML = `
             <td>${item.song_id}</td>
-            <td style="text-align: left;">
-                <strong>${song.title}</strong><br>
-                <small style="color:#888">${song.composer || ''}</small>
+            <td class="song-info-cell">
+                <strong class="song-title">${song.title}</strong>
+                <span class="song-composer">${song.composer || 'Unknown Composer'}</span>
             </td>
-            <td><strong>${s(item.casual_score)}</strong> <div class="level-badge">${l(song.casual_level)}</div></td>
-            <td><strong>${s(item.normal_score)}</strong> <div class="level-badge">${l(song.normal_level)}</div></td>
-            <td><strong>${s(item.hard_score)}</strong> <div class="level-badge">${l(song.hard_level)}</div></td>
-            <td><strong>${s(item.expert_score)}</strong> <div class="level-badge">${l(song.expert_level)}</div></td>
+            <td class="col-casual"><strong>${s(item.casual_score)}</strong> <br> <div class="level-badge">${l(song.casual_level)}</div></td>
+            <td class="col-normal"><strong>${s(item.normal_score)}</strong> <br> <div class="level-badge">${l(song.normal_level)}</div></td>
+            <td class="col-hard"><strong>${s(item.hard_score)}</strong> <br> <div class="level-badge">${l(song.hard_level)}</div></td>
+            <td class="col-expert"><strong>${s(item.expert_score)}</strong> <br> <div class="level-badge">${l(song.expert_level)}</div></td>
         `;
         tableBody.appendChild(tr);
     });
@@ -137,7 +137,7 @@ function sortTable(column) {
     renderTable(fetchedData);
 }
 
-// 4. 데이터 저장 및 수정
+// 4. 데이터 저장 및 안전한 수정
 async function saveRecord() {
     const songId = document.getElementById('songId').value;
     if (!songId) {
