@@ -404,4 +404,11 @@ function renderStatsTable() {
         <td><span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span></td>
     `;
     statsBody.appendChild(totalTr);
+
+    // 악곡 및 채보 수 동적 계산
+    const songCount = songsData.length; // 45
+    const chartCount = songCount * 4;   // 180
+
+    document.getElementById('statsSummary').innerHTML = 
+        `총 <strong>${songCount}</strong>곡 (채보 <strong>${chartCount}</strong>개)`;
 }
