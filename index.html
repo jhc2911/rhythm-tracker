@@ -184,9 +184,9 @@
         th:hover { background-color: #f1f2f4; }
         .sort-icon { font-size: 12px; margin-left: 3px; color: #aaa; }
 
-        /* ✨ [수정] 곡 제목 / 작곡가 열 옅은 하늘색 배경 지정 */
-        .col-title, .song-info-cell { 
-            background-color: rgba(224, 242, 254, 0.4) !important; 
+        /* ✨ [수정] 본문 곡 제목 / 작곡가 데이터 셀(td)에만 옅은 하늘색 배경 지정 */
+        .song-info-cell { 
+            background-color: rgba(224, 242, 254, 0.4); 
         }
 
         /* 테이블 배경색 농도 유지 */
@@ -239,7 +239,7 @@
             filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.15));
         }
 
-        /* ✨ 4. ALL PERFECT+: AP와 색상은 같으나 영롱하게 흐르며 빛나는 그라데이션 애니메이션 추가 */
+        /* 4. ALL PERFECT+: AP와 색상은 같으나 영롱하게 흐르며 빛나는 그라데이션 애니메이션 추가 */
         .status-applus {
             background: linear-gradient(90deg, #4dabf7 0%, #b57bed 30%, #f783ac 50%, #4dabf7 70%, #b57bed 100%);
             background-size: 200% auto;
@@ -276,7 +276,7 @@
             box-shadow: 0 0 4px rgba(12, 133, 153, 0.4);
         }
 
-        /* ✨ 전 난이도 AP+ 졸업 곡 셀 전용 붉은색 테마 디자인 */
+        /* 전 난이도 AP+ 졸업 곡 셀 전용 붉은색 테마 디자인 */
         .graduated-song-cell {
             background: linear-gradient(135deg, #fff0f2 0%, #ffe3e6 100%) !important;
             border-left: 4px solid #e63946 !important;
@@ -297,7 +297,7 @@
             box-shadow: 0 0 4px rgba(252, 196, 25, 0.5);
         }
 
-        /* ✨ [수정/신규] 레벨별 통계 전용 표 세로 구분선 및 스타일 */
+        /* 레벨별 통계 전용 표 세로 구분선 및 스타일 */
         .stats-table th, .stats-table td {
             border-right: 1px solid #eaeaea;
         }
@@ -323,7 +323,7 @@
             border-bottom: 2px solid #ddd;
         }
 
-        /* ✨ [신규] 통계 헤더 악곡 / 채보 수 배지 스타일 */
+        /* 통계 헤더 악곡 / 채보 수 배지 스타일 */
         .stats-summary-badge {
             font-size: 14px;
             font-weight: normal;
@@ -413,12 +413,10 @@
     <!-- 📊 레벨별 통계 섹션 -->
     <h2 style="margin-top: 40px; display: flex; align-items: center;">
         📊 레벨별 통계 
-        <!-- ✨ [신규] 전체 악곡 수 / 채보 수 표시 -->
         <span class="stats-summary-badge" id="statsSummary">
             총 <strong>45</strong>곡 (채보 <strong>180</strong>개)
         </span>
     </h2>
-    <!-- ✨ [수정] 구분선 스타일을 위해 stats-table 클래스 추가 -->
     <table class="stats-table" style="margin-bottom: 50px;">
         <thead>
             <tr>
@@ -439,8 +437,8 @@
     <table>
         <thead>
             <tr>
-                <!-- ✨ [수정] col-title 클래스 추가 -->
-                <th class="col-title" style="width: 32%; text-align: left;" onclick="sortTable('title')">곡 제목 / 작곡가 <span id="icon-title" class="sort-icon">↕</span></th>
+                <!-- ✨ [수정] 헤더는 다른 헤더들과 동일하게 옅은 회색 유지 -->
+                <th style="width: 32%; text-align: left;" onclick="sortTable('title')">곡 제목 / 작곡가 <span id="icon-title" class="sort-icon">↕</span></th>
                 <th style="width: 15%; color: #4d7c53;" onclick="sortTable('casual_score')">CASUAL <span id="icon-casual_score" class="sort-icon">↕</span></th>
                 <th style="width: 15%; color: #bfa128;" onclick="sortTable('normal_score')">NORMAL <span id="icon-normal_score" class="sort-icon">↕</span></th>
                 <th style="width: 15%; color: #a63244;" onclick="sortTable('hard_score')">HARD <span id="icon-hard_score" class="sort-icon">↕</span></th>

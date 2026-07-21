@@ -410,5 +410,5 @@ function renderStatsTable() {
     const chartCount = songCount * 4;   // 180
 
     document.getElementById('statsSummary').innerHTML = 
-        `총 <strong>${songCount}</strong>곡 (채보 <strong>${chartCount}</strong>개)`;
+        `총 <strong>${songCount}</strong>곡 (<strong>${chartCount}</strong>개 채보)`;
 }
