@@ -107,7 +107,7 @@ function getScoreHTML(score, status, totalNotes) {
         const maxScore = 1000000 + totalNotes;
         if (score < maxScore) {
             const missedCount = maxScore - score;
-            missedText = `<span style="font-size: 11px; color: #ff6b6b; font-weight: normal; margin-left: 4px;">(-${missedCount})</span>`;
+            missedText = `<span style="font-size: 11px; color: #ff6b6b; font-weight: normal; margin-left: 4px;"><b>(-${missedCount})</b></span>`;
         }
     }
 
