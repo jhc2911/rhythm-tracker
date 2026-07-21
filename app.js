@@ -421,3 +421,89 @@ function renderStatsTable() {
     document.getElementById('statsSummary').innerHTML = 
         `총 <strong>${songCount}</strong>곡 (<strong>${chartCount}</strong>개 채보)`;
 }
+
+// 전체 곡 목록을 담아 둘 변수 (페이지 로드시 DB에서 가져온 곡 리스트 저장)
+let allSongsList = []; 
+
+// 🔥 1. 페이지 로드 시 또는 DB에서 곡 불러올 때 allSongsList에 저장해둡니다.
+// (기존 fetchSongs 또는 init 함수 등 곡 데이터를 불러오는 곳에서 저장)
+// allSongsList = songsData; 
+
+// 🔥 2. 곡 ID 입력 시 연동
+function onSongIdInput() {
+    const idInput = document.getElementById('songId').value;
+    const titleInput = document.getElementById('songTitleInput');
+    
+    if (!idInput) {
+        titleInput.value = '';
+        clearFormScores(); // 점수 폼 초기화 함수가 있다면 호출
+        return;
+    }
+
+    // ID로 곡 찾기
+    const foundSong = allSongsList.find(s => String(s.id) === String(idInput));
+    if (foundSong) {
+        titleInput.value = foundSong.title;
+        loadExistingRecord(foundSong.id); // 기존 기록 불러오기 함수
+    } else {
+        titleInput.value = '';
+    }
+}
+
+// 🔥 3. 곡 제목 입력창 클릭/포커스 시 전체 리스트 드롭다운 표시
+function showSongDropdown() {
+    const dropdown = document.getElementById('songDropdownList');
+    filterSongDropdown(); // 현재 입력된 검색어로 필터링하여 드롭다운 출력
+    dropdown.style.display = 'block';
+}
+
+// 🔥 4. 검색어 입력 시 드롭다운 필터링 (A 입력 시 A로 시작하거나 포함된 곡)
+function filterSongDropdown() {
+    const keyword = document.getElementById('songTitleInput').value.trim().toLowerCase();
+    const dropdown = document.getElementById('songDropdownList');
+    
+    // 키워드가 맞거나 빈칸일 때 필터링
+    const filtered = allSongsList.filter(song => 
+        song.title.toLowerCase().includes(keyword)
+    );
+
+    if (filtered.length === 0) {
+        dropdown.innerHTML = `<div class="dropdown-item" style="color:#aaa; cursor:default;">검색 결과가 없습니다.</div>`;
+    } else {
+        dropdown.innerHTML = filtered.map(song => `
+            <div class="dropdown-item" onclick="selectSongFromDropdown(${song.id}, '${song.title.replace(/'/g, "\\'")}')">
+                <span><strong>${song.title}</strong></span>
+                <span class="item-id">ID: ${song.id}</span>
+            </div>
+        `).join('');
+    }
+    dropdown.style.display = 'block';
+}
+
+// 🔥 5. 드롭다운 목록에서 곡 클릭 시 선택 처리
+function selectSongFromDropdown(songId, songTitle) {
+    document.getElementById('songId').value = songId;
+    document.getElementById('songTitleInput').value = songTitle;
+    document.getElementById('songDropdownList').style.display = 'none';
+
+    // 해당 곡의 기존 플레이 기록을 상단 폼에 채워넣는 로직 실행
+    loadExistingRecord(songId); 
+}
+
+// 🔥 6. 외부 영역 클릭 시 드롭다운 닫기
+document.addEventListener('click', function(e) {
+    const container = document.getElementById('songTitleInput')?.parentElement;
+    if (container && !container.contains(e.target)) {
+        document.getElementById('songDropdownList').style.display = 'none';
+    }
+});
+
+// 🔥 7. [기존 표(Table) 클릭 시] 행을 누르면 두 입력창에 모두 값 채워주기
+function selectSongFromTable(songId) {
+    const foundSong = allSongsList.find(s => String(s.id) === String(songId));
+    if (foundSong) {
+        document.getElementById('songId').value = foundSong.id;
+        document.getElementById('songTitleInput').value = foundSong.title;
+        loadExistingRecord(foundSong.id);
+    }
+}

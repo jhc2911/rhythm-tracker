@@ -365,6 +365,49 @@
             line-height: 1.2;
         }
 
+        /* 곡 제목 자동완성 드롭다운 스타일 */
+        .dropdown-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 220px; /* 최대 높이 지정 후 스크롤 생성 */
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #3b82f6;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: none; /* 기본 상태는 숨김 */
+            margin-top: 4px;
+        }
+
+        .dropdown-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background-color: #e0f2fe;
+        }
+
+        .dropdown-item .item-id {
+            font-size: 11px;
+            color: #888;
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
     </style>
 </head>
 <body>
@@ -380,12 +423,19 @@
         <h3>새 플레이 기록 등록 / 업데이트</h3>
         
         <div class="id-input-container">
+            <!-- 1. 곡 ID 입력창 -->
             <div class="id-input-group">
-                <label for="songId">곡 ID (songs 테이블 id)</label>
-                <input type="number" id="songId" placeholder="예: 1" oninput="updateSongTitleDisplay()">
+                <label for="songId">곡 ID</label>
+                <input type="number" id="songId" placeholder="예: 1" oninput="onSongIdInput()">
             </div>
-            <div class="song-name-display" id="songTitleDisplay">
-                <span style="color:#aaa; font-weight:normal;">곡 ID를 입력하거나 아래 표에서 곡을 선택하세요.</span>
+
+            <!-- 2. 곡 제목 검색 & 선택 입력창 (자동완성 드롭다운) -->
+            <div class="id-input-group" style="max-width: 350px; position: relative;">
+                <label for="songTitleInput">곡 제목 검색 / 선택</label>
+                <input type="text" id="songTitleInput" placeholder="곡 제목 입력 또는 클릭" autocomplete="off" onfocus="showSongDropdown()" oninput="filterSongDropdown()">
+                
+                <!-- 커스텀 드롭다운 목록 (스크롤 지원) -->
+                <div id="songDropdownList" class="dropdown-list"></div>
             </div>
         </div>
 
