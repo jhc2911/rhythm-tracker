@@ -49,7 +49,8 @@ async function loadRecords() {
                 casual_notes,
                 normal_notes,
                 hard_notes,
-                expert_notes
+                expert_notes,
+                pack_name
             )
         `);
 
