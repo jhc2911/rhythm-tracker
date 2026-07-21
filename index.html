@@ -335,6 +335,26 @@
             margin-left: 10px;
             vertical-align: middle;
         }
+
+        /* 곡 제목 셀 내부 레이아웃 (좌: 제목/작곡가, 우: 팩 이름) */
+        .song-info-cell { 
+            background-color: rgba(224, 242, 254, 0.4); 
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px; /* 양옆 여백 */
+        }
+
+        /* 악곡 팩 이름 텍스트 스타일 */
+        .pack-name-text {
+            font-size: 12px;
+            color: #666;             /* 지나치게 튀지 않는 은은한 회색 */
+            font-weight: 500;
+            white-space: nowrap;     /* 줄바꿈 방지 */
+            margin-left: 10px;
+        }
+
     </style>
 </head>
 <body>
@@ -414,7 +434,7 @@
     <h2 style="margin-top: 40px; display: flex; align-items: center;">
         📊 레벨별 통계 
         <span class="stats-summary-badge" id="statsSummary">
-            총 <strong>45</strong>곡 (채보 <strong>180</strong>개)
+            총 <strong>45</strong>곡 (<strong>180</strong>개 채보)
         </span>
     </h2>
     <table class="stats-table" style="margin-bottom: 50px;">
@@ -438,7 +458,7 @@
         <thead>
             <tr>
                 <!-- ✨ [수정] 헤더는 다른 헤더들과 동일하게 옅은 회색 유지 -->
-                <th style="width: 32%; text-align: left;" onclick="sortTable('title')">곡 제목 / 작곡가 <span id="icon-title" class="sort-icon">↕</span></th>
+                <th style="width: 32%; text-align: left;" onclick="sortTable('title')">제목 <span id="icon-title" class="sort-icon">↕</span></th>
                 <th style="width: 15%; color: #4d7c53;" onclick="sortTable('casual_score')">CASUAL <span id="icon-casual_score" class="sort-icon">↕</span></th>
                 <th style="width: 15%; color: #bfa128;" onclick="sortTable('normal_score')">NORMAL <span id="icon-normal_score" class="sort-icon">↕</span></th>
                 <th style="width: 15%; color: #a63244;" onclick="sortTable('hard_score')">HARD <span id="icon-hard_score" class="sort-icon">↕</span></th>

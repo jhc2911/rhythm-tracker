@@ -133,7 +133,7 @@ function getScoreHTML(score, status, totalNotes) {
     `;
 }
 
-// 2. 테이블 렌더링 (점수-레벨 세로 라인 일치 버전)
+// 2. 테이블 렌더링 (점수-레벨 세로 라인 일치 및 팩 이름 출력 버전)
 function renderTable(dataList) {
     const tableBody = document.getElementById('tableBody');
     tableBody.innerHTML = '';
@@ -151,7 +151,7 @@ function renderTable(dataList) {
         tr.style.cursor = 'pointer';
         tr.onclick = function() { selectSong(item.song_id); };
 
-        // 💡 하단 레벨 배지도 가짜 빈 공간 없이 텍스트 크기만큼만 정렬되도록 변경
+        // 하단 레벨 배지
         const l = (level) => {
             if (level === null || level === undefined) return '';
             return `
@@ -169,11 +169,19 @@ function renderTable(dataList) {
         const songCellClass = isGraduated ? 'song-info-cell graduated-song-cell' : 'song-info-cell';
         const masterBadge = isGraduated ? '<span class="graduated-badge">🏅 MASTER</span>' : '';
 
-        // 💡 각 td 셀 내부를 'text-align: center'로 완전히 잡아주어 알맹이 데이터가 무조건 정중앙에 수렴하도록 처리
+        // ✨ [추가] DB의 pack_name 값이 없으면 기본 'TRACING THE STARS' 출력
+        const packName = song.pack_name || 'TRACING THE STARS';
+
+        // ✨ [수정] 곡 제목/작곡가 셀 내부에 좌우 배치를 위한 HTML 구성
         tr.innerHTML = `
             <td class="${songCellClass}">
-                <strong class="song-title" style="display:inline-block; vertical-align:middle;">${song.title}</strong>${masterBadge}
-                <span class="song-composer" style="display:block; margin-top:2px;">${song.composer || 'Unknown Composer'}</span>
+                <div>
+                    <div>
+                        <strong class="song-title" style="display:inline-block; vertical-align:middle;">${song.title}</strong>${masterBadge}
+                    </div>
+                    <span class="song-composer" style="display:block; margin-top:2px;">${song.composer || 'Unknown Composer'}</span>
+                </div>
+                <span class="pack-name-text">${packName}</span>
             </td>
             <td class="col-casual" style="text-align: center; vertical-align: middle;">${getScoreHTML(item.casual_score, item.casual_status, song.casual_notes)}${l(song.casual_level)}</td>
             <td class="col-normal" style="text-align: center; vertical-align: middle;">${getScoreHTML(item.normal_score, item.normal_status, song.normal_notes)}${l(song.normal_level)}</td>
