@@ -274,6 +274,7 @@ function showSongDropdown() {
     filterSongDropdown();
 }
 
+// 🔥 검색어 필터링 알고리즘 개선 버전
 function filterSongDropdown() {
     const titleInput = document.getElementById('songTitleInput');
     const dropdown = document.getElementById('songDropdownList');
@@ -287,14 +288,57 @@ function filterSongDropdown() {
         return;
     }
 
-    const filtered = allSongsList.filter(song => 
-        song.title && song.title.toLowerCase().includes(keyword)
+    // 키워드가 비어있으면 전체 목록 출력
+    if (!keyword) {
+        renderDropdownItems(allSongsList);
+        return;
+    }
+
+    // 🎯 1단계: 곡 제목 전체가 검색어로 시작하는 곡 (예: 'M' 입력 시 'Monster' 등)
+    const startsWithTitle = allSongsList.filter(song => 
+        song.title && song.title.toLowerCase().startsWith(keyword)
     );
 
-    if (filtered.length === 0) {
+    // 🎯 2단계: 단어 단위 첫 글자가 검색어로 시작하는 곡 (예: 'M' 입력 시 'The Monster', 'Music World' 등)
+    // 단, 1단계에서 이미 찾은 곡은 제외
+    const startsWithWord = allSongsList.filter(song => {
+        if (!song.title) return false;
+        const lowerTitle = song.title.toLowerCase();
+        
+        // 이미 1단계 조건(제목 시작)에 맞은 곡은 중복 방지
+        if (lowerTitle.startsWith(keyword)) return false;
+
+        // 공백으로 단어를 나누어 어떤 단어든 검색어로 시작하는지 확인
+        const words = lowerTitle.split(/\s+/);
+        return words.some(word => word.startsWith(keyword));
+    });
+
+    // 🎯 3단계: (선택) 위의 조건에 안 걸렸지만 중간에 포함된 곡
+    // 'BASS BOMB'처럼 중간/끝에 들어간 곡을 완전히 배제하고 싶다면 아래 3단계를 제거하시면 됩니다!
+    /*
+    const containsKeyword = allSongsList.filter(song => {
+        if (!song.title) return false;
+        const lowerTitle = song.title.toLowerCase();
+        return !lowerTitle.startsWith(keyword) && 
+               !lowerTitle.split(/\s+/).some(w => w.startsWith(keyword)) &&
+               lowerTitle.includes(keyword);
+    });
+    */
+
+    // 검색 우선순위에 따라 결과 합치기 (1순위: 제목 시작 -> 2순위: 단어 시작)
+    const filtered = [...startsWithTitle, ...startsWithWord];
+
+    renderDropdownItems(filtered);
+}
+
+// 드롭다운 HTML 렌더링 헬퍼 함수
+function renderDropdownItems(list) {
+    const dropdown = document.getElementById('songDropdownList');
+    
+    if (list.length === 0) {
         dropdown.innerHTML = `<div class="dropdown-item" style="color:#aaa; cursor:default;">검색 결과가 없습니다.</div>`;
     } else {
-        dropdown.innerHTML = filtered.map(song => `
+        dropdown.innerHTML = list.map(song => `
             <div class="dropdown-item" onclick="selectSongFromDropdown(${song.id}, '${song.title.replace(/'/g, "\\'")}')">
                 <span><strong>${song.title}</strong></span>
                 <span class="item-id">ID: ${song.id}</span>
