@@ -3,8 +3,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let fetchedData = [];
-// [기본 정렬 설정] 최초 로드 시 '곡 제목' 기준으로 오름차순 정렬하기 위한 기본값 설정
+let fetchedData = [];      // 유저의 플레이 기록 (records 테이블)
+let allSongsList = [];     // 전체 곡 목록 (songs 테이블)
+
+// [기본 정렬 설정]
 let currentSortColumn = 'title'; 
 let isAscending = true;          
 
@@ -14,7 +16,8 @@ window.onload = async function() {
         alert('로그인이 필요한 페이지입니다.');
         window.location.href = 'login.html';
     } else {
-        loadRecords();
+        await loadAllSongs(); // 1. 전체 곡 데이터 먼저 로드
+        await loadRecords();  // 2. 내 플레이 기록 로드
     }
 };
 
@@ -23,7 +26,21 @@ async function handleLogout() {
     window.location.href = 'login.html';
 }
 
-// 1. 데이터 불러오기
+// 0. 전체 songs 데이터 로드 (드롭다운 및 전체 검색용)
+async function loadAllSongs() {
+    const { data, error } = await supabaseClient
+        .from('songs')
+        .select('*')
+        .order('id', { ascending: true });
+
+    if (!error && data) {
+        allSongsList = data;
+    } else {
+        console.error('songs 테이블 로드 오류:', error);
+    }
+}
+
+// 1. 플레이 기록 데이터 불러오기
 async function loadRecords() {
     const tableBody = document.getElementById('tableBody');
     
@@ -55,20 +72,15 @@ async function loadRecords() {
         `);
 
     if (error) {
-        tableBody.innerHTML = `<tr><td colspan="6" style="color:red;">오류 발생: ${error.message}</td></tr>`;
+        if (tableBody) tableBody.innerHTML = `<tr><td colspan="5" style="color:red;">오류 발생: ${error.message}</td></tr>`;
         return;
     }
 
     fetchedData = data || [];
 
-    // [수정] 무조건 'title'로 초기화하지 않고, '현재 활성화된 정렬 기준'을 그대로 유지하여 정렬을 수행합니다.
     applySort(currentSortColumn, isAscending);
-
-    // 정렬 삼각형 아이콘 UI 상태 업데이트
     updateSortIcons();
-
     renderTable(fetchedData);
-    updateSongTitleDisplay();
     renderStatsTable();
 }
 
@@ -123,7 +135,6 @@ function getScoreHTML(score, status, totalNotes) {
         badgeHTML = '<span class="status-badge badge-applus">AP+</span>';
     }
 
-    // 💡 고정 너비(60px)를 과감히 제거하고 content 두께만큼만 차지하게 유연한 flex 구조로 변경
     return `
         <div style="display: inline-flex; align-items: center; justify-content: flex-start; text-align: left;">
             <span class="score-text ${styleClass}">${score.toLocaleString()}</span>
@@ -134,9 +145,10 @@ function getScoreHTML(score, status, totalNotes) {
     `;
 }
 
-// 2. 테이블 렌더링 (점수-레벨 세로 라인 일치 및 팩 이름 출력 버전)
+// 2. 테이블 렌더링
 function renderTable(dataList) {
     const tableBody = document.getElementById('tableBody');
+    if (!tableBody) return;
     tableBody.innerHTML = '';
 
     if (dataList.length === 0) {
@@ -152,7 +164,6 @@ function renderTable(dataList) {
         tr.style.cursor = 'pointer';
         tr.onclick = function() { selectSong(item.song_id); };
 
-        // 하단 레벨 배지
         const l = (level) => {
             if (level === null || level === undefined) return '';
             return `
@@ -169,11 +180,8 @@ function renderTable(dataList) {
 
         const songCellClass = isGraduated ? 'song-info-cell graduated-song-cell' : 'song-info-cell';
         const masterBadge = isGraduated ? '<span class="graduated-badge">🏅 MASTER</span>' : '';
-
-        // ✨ [추가] DB의 pack_name 값이 없으면 기본 'TRACING THE STARS' 출력
         const packName = song.pack_name || 'TRACING THE STARS';
 
-        // ✨ [수정] 곡 제목/작곡가 셀 내부에 좌우 배치를 위한 HTML 구성
         tr.innerHTML = `
             <td class="${songCellClass}">
                 <div>
@@ -193,12 +201,10 @@ function renderTable(dataList) {
     });
 }
 
-// 표에서 행 클릭 시 입력 폼에 바인딩
-function selectSong(songId) {
-    document.getElementById('songId').value = songId;
-    updateSongTitleDisplay();
-    
+// ✨ 공통: 선택된 곡의 기존 기록 및 정보 폼에 바인딩
+function loadExistingRecord(songId) {
     const record = fetchedData.find(item => item.song_id === songId);
+    
     if (record) {
         document.getElementById('casualScore').value = record.casual_score || '';
         document.getElementById('normalScore').value = record.normal_score || '';
@@ -209,31 +215,111 @@ function selectSong(songId) {
         document.getElementById('normalStatus').value = record.normal_status || 'CLEAR';
         document.getElementById('hardStatus').value = record.hard_status || 'CLEAR';
         document.getElementById('expertStatus').value = record.expert_status || 'CLEAR';
+    } else {
+        clearFormScores();
     }
-    document.getElementById('songId').focus();
 }
 
-function updateSongTitleDisplay() {
-    const songIdInput = document.getElementById('songId').value;
-    const displayArea = document.getElementById('songTitleDisplay');
+function clearFormScores() {
+    ['casual', 'normal', 'hard', 'expert'].forEach(diff => {
+        const scoreInput = document.getElementById(`${diff}Score`);
+        const statusSelect = document.getElementById(`${diff}Status`);
+        if (scoreInput) scoreInput.value = '';
+        if (statusSelect) statusSelect.value = 'CLEAR';
+    });
+}
+
+// ✨ 표에서 행 클릭 시 실행되는 함수
+function selectSong(songId) {
+    const songIdInput = document.getElementById('songId');
+    const titleInput = document.getElementById('songTitleInput');
     
-    if (!songIdInput) {
-        displayArea.innerHTML = '<span style="color:#aaa; font-weight:normal;">곡 ID를 입력하거나 아래 표에서 곡을 선택하세요.</span>';
+    songIdInput.value = songId;
+    
+    // allSongsList에서 곡 제목 가져와 채우기
+    const foundSong = allSongsList.find(s => Number(s.id) === Number(songId));
+    if (foundSong && titleInput) {
+        titleInput.value = foundSong.title;
+    }
+
+    loadExistingRecord(songId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ✨ 곡 ID 입력창 제어 (수동 ID 입력 시)
+function onSongIdInput() {
+    const songIdVal = document.getElementById('songId').value;
+    const titleInput = document.getElementById('songTitleInput');
+    
+    if (!songIdVal) {
+        if (titleInput) titleInput.value = '';
+        clearFormScores();
         return;
     }
 
-    const targetId = parseInt(songIdInput);
-    const found = fetchedData.find(item => item.song_id === targetId);
+    const targetId = parseInt(songIdVal);
+    const foundSong = allSongsList.find(s => Number(s.id) === targetId);
 
-    if (found && found.songs) {
-        displayArea.innerHTML = `선택된 곡: <span style="color:#2ecc71">${found.songs.title}</span>`;
+    if (foundSong) {
+        if (titleInput) titleInput.value = foundSong.title;
+        loadExistingRecord(targetId);
     } else {
-        displayArea.innerHTML = `
-            <span class="new-song-badge">신규 악곡 등록 모드</span><br>
-            <input type="text" id="newSongTitle" class="new-title-input" style="display:block;" placeholder="새로운 곡의 제목을 입력하세요">
-        `;
+        if (titleInput) titleInput.value = '';
+        clearFormScores();
     }
 }
+
+// ✨ 곡 제목 드롭다운 및 검색 로직
+function showSongDropdown() {
+    filterSongDropdown();
+}
+
+function filterSongDropdown() {
+    const titleInput = document.getElementById('songTitleInput');
+    const dropdown = document.getElementById('songDropdownList');
+    if (!titleInput || !dropdown) return;
+
+    const keyword = titleInput.value.trim().toLowerCase();
+
+    if (!allSongsList || allSongsList.length === 0) {
+        dropdown.innerHTML = `<div class="dropdown-item" style="color:#aaa; cursor:default;">곡 데이터를 불러오는 중...</div>`;
+        dropdown.style.display = 'block';
+        return;
+    }
+
+    const filtered = allSongsList.filter(song => 
+        song.title && song.title.toLowerCase().includes(keyword)
+    );
+
+    if (filtered.length === 0) {
+        dropdown.innerHTML = `<div class="dropdown-item" style="color:#aaa; cursor:default;">검색 결과가 없습니다.</div>`;
+    } else {
+        dropdown.innerHTML = filtered.map(song => `
+            <div class="dropdown-item" onclick="selectSongFromDropdown(${song.id}, '${song.title.replace(/'/g, "\\'")}')">
+                <span><strong>${song.title}</strong></span>
+                <span class="item-id">ID: ${song.id}</span>
+            </div>
+        `).join('');
+    }
+    dropdown.style.display = 'block';
+}
+
+function selectSongFromDropdown(songId, songTitle) {
+    document.getElementById('songId').value = songId;
+    document.getElementById('songTitleInput').value = songTitle;
+    document.getElementById('songDropdownList').style.display = 'none';
+
+    loadExistingRecord(songId);
+}
+
+// 드롭다운 바깥 클릭 시 닫기
+document.addEventListener('click', function(e) {
+    const container = document.getElementById('songTitleInput')?.parentElement;
+    if (container && !container.contains(e.target)) {
+        const dropdown = document.getElementById('songDropdownList');
+        if (dropdown) dropdown.style.display = 'none';
+    }
+});
 
 // 사용자가 헤더를 수동으로 클릭했을 때의 정렬 처리
 function sortTable(column) {
@@ -270,25 +356,6 @@ async function saveRecord() {
 
     const existingRecord = fetchedData.find(item => item.song_id === targetId);
 
-    if (!existingRecord) {
-        const newTitleInput = document.getElementById('newSongTitle');
-        const newTitle = newTitleInput ? newTitleInput.value.trim() : '';
-        if (!newTitle) {
-            alert('새로운 곡의 ID입니다. 악곡 제목을 입력해주세요.');
-            if(newTitleInput) newTitleInput.focus();
-            return;
-        }
-
-        const { error: songError } = await supabaseClient
-            .from('songs')
-            .upsert([{ id: targetId, title: newTitle, composer: 'Unknown Composer' }]);
-
-        if (songError) {
-            alert('새로운 곡 등록 실패: ' + songError.message);
-            return;
-        }
-    }
-
     const rowData = {
         song_id: targetId,
         casual_score: casualInput ? parseInt(casualInput) : (existingRecord ? existingRecord.casual_score : null),
@@ -309,7 +376,7 @@ async function saveRecord() {
         alert('점수 저장 실패: ' + recordError.message);
     } else {
         alert('기록과 클리어 상태가 성공적으로 반영되었습니다!');
-        loadRecords(); // [유지 확인] 사용자가 보고 있던 정렬 상태 그대로 유지하면서 갱신됩니다.
+        await loadRecords();
     }
 }
 
@@ -319,20 +386,16 @@ function renderStatsTable() {
     if (!statsBody) return;
     statsBody.innerHTML = '';
 
-    // 레벨 1부터 19까지 데이터를 모을 배열 초기화 (0번 인덱스는 비워둠)
     const stats = Array.from({ length: 20 }, () => ({
         total: 0, applus: 0, ap: 0, fc: 0, clear: 0
     }));
 
-    // 전체 합계를 위한 객체
     const totalStats = { total: 0, applus: 0, ap: 0, fc: 0, clear: 0 };
 
-    // 1. 데이터 집계
     fetchedData.forEach(item => {
         const song = item.songs;
         if (!song) return;
 
-        // 4가지 난이도 각각 매핑 검사
         const difficulties = [
             { score: item.casual_score, status: item.casual_status, level: song.casual_level },
             { score: item.normal_score, status: item.normal_status, level: song.normal_level },
@@ -341,39 +404,21 @@ function renderStatsTable() {
         ];
 
         difficulties.forEach(diff => {
-            // 점수가 기록되어 있고 레벨이 1~19 사이인 경우에만 집계
             if (diff.score !== null && diff.score !== undefined && diff.level >= 1 && diff.level <= 19) {
                 const lv = diff.level;
                 stats[lv].total += 1;
                 totalStats.total += 1;
 
-                // 상위 등급이 하위 등급의 조건을 포함하여 누적 카운트 처리
                 if (diff.status === 'AP+') {
-                    stats[lv].applus += 1;
-                    stats[lv].ap += 1;
-                    stats[lv].fc += 1;
-                    stats[lv].clear += 1;
-
-                    totalStats.applus += 1;
-                    totalStats.ap += 1;
-                    totalStats.fc += 1;
-                    totalStats.clear += 1;
+                    stats[lv].applus += 1; stats[lv].ap += 1; stats[lv].fc += 1; stats[lv].clear += 1;
+                    totalStats.applus += 1; totalStats.ap += 1; totalStats.fc += 1; totalStats.clear += 1;
                 } else if (diff.status === 'AP') {
-                    stats[lv].ap += 1;
-                    stats[lv].fc += 1;
-                    stats[lv].clear += 1;
-
-                    totalStats.ap += 1;
-                    totalStats.fc += 1;
-                    totalStats.clear += 1;
+                    stats[lv].ap += 1; stats[lv].fc += 1; stats[lv].clear += 1;
+                    totalStats.ap += 1; totalStats.fc += 1; totalStats.clear += 1;
                 } else if (diff.status === 'FC') {
-                    stats[lv].fc += 1;
-                    stats[lv].clear += 1;
-
-                    totalStats.fc += 1;
-                    totalStats.clear += 1;
+                    stats[lv].fc += 1; stats[lv].clear += 1;
+                    totalStats.fc += 1; totalStats.clear += 1;
                 } else {
-                    // CLEAR인 경우
                     stats[lv].clear += 1;
                     totalStats.clear += 1;
                 }
@@ -381,13 +426,11 @@ function renderStatsTable() {
         });
     });
 
-    // 비율 구하기 헬퍼 함수
     const getRateStr = (count, total) => {
         if (total === 0) return '(0.0%)';
         return `(${(count / total * 100).toFixed(1)}%)`;
     };
 
-    // 2. 레벨 1~19 행 생성 및 렌더링
     for (let lv = 1; lv <= 19; lv++) {
         const row = stats[lv];
         const tr = document.createElement('tr');
@@ -402,7 +445,6 @@ function renderStatsTable() {
         statsBody.appendChild(tr);
     }
 
-    // 3. 맨 아래 TOTAL 행 추가
     const totalTr = document.createElement('tr');
     totalTr.className = 'total-row';
     totalTr.innerHTML = `
@@ -414,96 +456,11 @@ function renderStatsTable() {
     `;
     statsBody.appendChild(totalTr);
 
-    // 악곡 및 채보 수 동적 계산
-    const songCount = songsData.length; // 45
-    const chartCount = songCount * 4;   // 180
+    const songCount = allSongsList.length;
+    const chartCount = songCount * 4;
 
-    document.getElementById('statsSummary').innerHTML = 
-        `총 <strong>${songCount}</strong>곡 (<strong>${chartCount}</strong>개 채보)`;
-}
-
-// 전체 곡 목록을 담아 둘 변수 (페이지 로드시 DB에서 가져온 곡 리스트 저장)
-let allSongsList = []; 
-
-// 🔥 1. 페이지 로드 시 또는 DB에서 곡 불러올 때 allSongsList에 저장해둡니다.
-// (기존 fetchSongs 또는 init 함수 등 곡 데이터를 불러오는 곳에서 저장)
-// allSongsList = songsData; 
-
-// 🔥 2. 곡 ID 입력 시 연동
-function onSongIdInput() {
-    const idInput = document.getElementById('songId').value;
-    const titleInput = document.getElementById('songTitleInput');
-    
-    if (!idInput) {
-        titleInput.value = '';
-        clearFormScores(); // 점수 폼 초기화 함수가 있다면 호출
-        return;
-    }
-
-    // ID로 곡 찾기
-    const foundSong = allSongsList.find(s => String(s.id) === String(idInput));
-    if (foundSong) {
-        titleInput.value = foundSong.title;
-        loadExistingRecord(foundSong.id); // 기존 기록 불러오기 함수
-    } else {
-        titleInput.value = '';
-    }
-}
-
-// 🔥 3. 곡 제목 입력창 클릭/포커스 시 전체 리스트 드롭다운 표시
-function showSongDropdown() {
-    const dropdown = document.getElementById('songDropdownList');
-    filterSongDropdown(); // 현재 입력된 검색어로 필터링하여 드롭다운 출력
-    dropdown.style.display = 'block';
-}
-
-// 🔥 4. 검색어 입력 시 드롭다운 필터링 (A 입력 시 A로 시작하거나 포함된 곡)
-function filterSongDropdown() {
-    const keyword = document.getElementById('songTitleInput').value.trim().toLowerCase();
-    const dropdown = document.getElementById('songDropdownList');
-    
-    // 키워드가 맞거나 빈칸일 때 필터링
-    const filtered = allSongsList.filter(song => 
-        song.title.toLowerCase().includes(keyword)
-    );
-
-    if (filtered.length === 0) {
-        dropdown.innerHTML = `<div class="dropdown-item" style="color:#aaa; cursor:default;">검색 결과가 없습니다.</div>`;
-    } else {
-        dropdown.innerHTML = filtered.map(song => `
-            <div class="dropdown-item" onclick="selectSongFromDropdown(${song.id}, '${song.title.replace(/'/g, "\\'")}')">
-                <span><strong>${song.title}</strong></span>
-                <span class="item-id">ID: ${song.id}</span>
-            </div>
-        `).join('');
-    }
-    dropdown.style.display = 'block';
-}
-
-// 🔥 5. 드롭다운 목록에서 곡 클릭 시 선택 처리
-function selectSongFromDropdown(songId, songTitle) {
-    document.getElementById('songId').value = songId;
-    document.getElementById('songTitleInput').value = songTitle;
-    document.getElementById('songDropdownList').style.display = 'none';
-
-    // 해당 곡의 기존 플레이 기록을 상단 폼에 채워넣는 로직 실행
-    loadExistingRecord(songId); 
-}
-
-// 🔥 6. 외부 영역 클릭 시 드롭다운 닫기
-document.addEventListener('click', function(e) {
-    const container = document.getElementById('songTitleInput')?.parentElement;
-    if (container && !container.contains(e.target)) {
-        document.getElementById('songDropdownList').style.display = 'none';
-    }
-});
-
-// 🔥 7. [기존 표(Table) 클릭 시] 행을 누르면 두 입력창에 모두 값 채워주기
-function selectSongFromTable(songId) {
-    const foundSong = allSongsList.find(s => String(s.id) === String(songId));
-    if (foundSong) {
-        document.getElementById('songId').value = foundSong.id;
-        document.getElementById('songTitleInput').value = foundSong.title;
-        loadExistingRecord(foundSong.id);
+    const statsSummary = document.getElementById('statsSummary');
+    if (statsSummary) {
+        statsSummary.innerHTML = `총 <strong>${songCount}</strong>곡 (<strong>${chartCount}</strong>개 채보)`;
     }
 }
