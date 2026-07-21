@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>리듬게임 개인 기록 관리</title>
+    <title>니케 리듬게임 개인 기록 관리</title>
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -20,6 +20,11 @@
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            
+            /* ✨ [추가] 모바일 잘림 방지 스타일 */
+            width: fit-content;
+            min-width: 100%;
+            box-sizing: border-box;
         }
         .header-area {
             display: flex;
@@ -108,9 +113,11 @@
             display: flex;
             gap: 15px;
             margin-bottom: 20px;
+            flex-wrap: wrap; /* 모바일 반응형 처리 */
         }
         .score-card {
             flex: 1;
+            min-width: 140px;
             padding: 15px;
             border-radius: 8px;
             border-top: 5px solid #ccc;
@@ -161,13 +168,21 @@
         }
         .submit-btn:hover { background-color: #27ae60; }
 
+        /* ✨ [추가] 모바일 가로 스크롤 래퍼 */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 10px;
+        }
+
         /* 테이블 구조 스타일링 */
         h2 { color: #333; margin-bottom: 15px; font-size: 22px; }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
             background: white;
+            min-width: 750px; /* ✨ 모바일에서 테이블 안 구겨지는 최소 폭 */
         }
         th, td {
             padding: 12px 10px;
@@ -184,11 +199,6 @@
         th:hover { background-color: #f1f2f4; }
         .sort-icon { font-size: 12px; margin-left: 3px; color: #aaa; }
 
-        /* ✨ [수정] 본문 곡 제목 / 작곡가 데이터 셀(td)에만 옅은 하늘색 배경 지정 */
-        .song-info-cell { 
-            background-color: rgba(224, 242, 254, 0.4); 
-        }
-
         /* 테이블 배경색 농도 유지 */
         .col-casual { background-color: rgba(77, 124, 83, 0.13); }
         .col-normal { background-color: rgba(191, 161, 40, 0.12); }
@@ -204,7 +214,6 @@
         
         tbody tr:hover { background-color: #f1f3f7; }
         
-        .song-info-cell { text-align: left; }
         .song-title { font-size: 15px; color: #222; display: block; margin-bottom: 2px; }
         .song-composer { font-size: 12px; color: #777; display: block; }
 
@@ -342,18 +351,18 @@
             text-align: left;
             display: flex;
             justify-content: space-between;
-            align-items: flex-end; /* ✨ [수정] center -> flex-end (아래쪽 정렬) */
+            align-items: flex-end; /* 아래쪽 정렬 */
             padding: 10px 15px;
         }
 
         /* 악곡 팩 이름 텍스트 스타일 */
         .pack-name-text {
             font-size: 12px;
-            color: #777;             /* 작곡가 텍스트와 톤 맞춤 */
+            color: #777;
             font-weight: 500;
             white-space: nowrap;
             margin-left: 10px;
-            line-height: 1.2;        /* 작곡가 이름 높이와 자연스럽게 맞춤 */
+            line-height: 1.2;
         }
 
     </style>
@@ -362,7 +371,7 @@
 
 <div class="container">
     <div class="header-area">
-        <h1>🎵 리듬게임 개인 기록 관리</h1>
+        <h1>🎵 니케 리듬게임 개인 기록 관리</h1>
         <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
     </div>
 
@@ -438,40 +447,43 @@
             총 <strong>45</strong>곡 (<strong>180</strong>개 채보)
         </span>
     </h2>
-    <table class="stats-table" style="margin-bottom: 50px;">
-        <thead>
-            <tr>
-                <th style="width: 12%;">LV</th>
-                <th style="width: 22%;">ALL PERFECT+ (비율)</th>
-                <th style="width: 22%;">ALL PERFECT (비율)</th>
-                <th style="width: 22%;">FULL COMBO (비율)</th>
-                <th style="width: 22%;">CLEAR (비율)</th>
-            </tr>
-        </thead>
-        <tbody id="statsTableBody">
-            <!-- 자바스크립트에서 동적으로 생성됩니다 -->
-        </tbody>
-    </table>
+    <div class="table-responsive" style="margin-bottom: 50px;">
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th style="width: 12%;">LV</th>
+                    <th style="width: 22%;">ALL PERFECT+ (비율)</th>
+                    <th style="width: 22%;">ALL PERFECT (비율)</th>
+                    <th style="width: 22%;">FULL COMBO (비율)</th>
+                    <th style="width: 22%;">CLEAR (비율)</th>
+                </tr>
+            </thead>
+            <tbody id="statsTableBody">
+                <!-- 자바스크립트에서 동적으로 생성됩니다 -->
+            </tbody>
+        </table>
+    </div>
 
     <!-- 내 플레이 기록 목록 -->
     <h2>내 플레이 기록 목록 <span style="font-size:14px; color:#888; font-weight:normal;">(행을 누르면 상단 폼에 자동 입력됩니다)</span></h2>
-    <table>
-        <thead>
-            <tr>
-                <!-- ✨ [수정] 헤더는 다른 헤더들과 동일하게 옅은 회색 유지 -->
-                <th style="width: 32%; text-align: left;" onclick="sortTable('title')">제목 <span id="icon-title" class="sort-icon">↕</span></th>
-                <th style="width: 15%; color: #4d7c53;" onclick="sortTable('casual_score')">CASUAL <span id="icon-casual_score" class="sort-icon">↕</span></th>
-                <th style="width: 15%; color: #bfa128;" onclick="sortTable('normal_score')">NORMAL <span id="icon-normal_score" class="sort-icon">↕</span></th>
-                <th style="width: 15%; color: #a63244;" onclick="sortTable('hard_score')">HARD <span id="icon-hard_score" class="sort-icon">↕</span></th>
-                <th style="width: 15%; color: #7832a6;" onclick="sortTable('expert_score')">EXPERT <span id="icon-expert_score" class="sort-icon">↕</span></th>
-            </tr>
-        </thead>
-        <tbody id="tableBody">
-            <tr>
-                <td colspan="6" style="text-align:center; padding:30px; color:#888;">데이터를 불러오는 중입니다...</td>
-            </tr>
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 32%; text-align: left;" onclick="sortTable('title')">제목 <span id="icon-title" class="sort-icon">↕</span></th>
+                    <th style="width: 15%; color: #4d7c53;" onclick="sortTable('casual_score')">CASUAL <span id="icon-casual_score" class="sort-icon">↕</span></th>
+                    <th style="width: 15%; color: #bfa128;" onclick="sortTable('normal_score')">NORMAL <span id="icon-normal_score" class="sort-icon">↕</span></th>
+                    <th style="width: 15%; color: #a63244;" onclick="sortTable('hard_score')">HARD <span id="icon-hard_score" class="sort-icon">↕</span></th>
+                    <th style="width: 15%; color: #7832a6;" onclick="sortTable('expert_score')">EXPERT <span id="icon-expert_score" class="sort-icon">↕</span></th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:30px; color:#888;">데이터를 불러오는 중입니다...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script src="app.js"></script>
