@@ -1,5 +1,5 @@
 const SUPABASE_URL = 'https://qpcczmuwydpwpwpskoej.supabase.co'; 
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2N6bXV3eWRwd3B3cHNrb2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NDgzNDEsImV4cCI6MjEwMDEyNDM0MX0.qje22MHokVuAXwrISej1KDrhFbFZFYgluzYwwdoO82I';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2N6bXV3eWRwd3B3cHNrb2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NDgzNDEsImV4cCI6MjEwMDEyNDM0MX0.qje22MHokVuAXwrISej1KDrhFZFYgluzYwwdoO82I';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -145,6 +145,45 @@ function getScoreHTML(score, status, totalNotes) {
     `;
 }
 
+// 📊 총점 및 평균 점수 요약 계산 및 렌더링 함수
+function renderScoreSummary() {
+    const totalScoreElem = document.getElementById('totalScoreText');
+    const avgScoreElem = document.getElementById('avgScoreText');
+    if (!totalScoreElem || !avgScoreElem) return;
+
+    let grandTotalScore = 0;
+
+    // 1. 플레이 기록의 모든 난이도 점수 합산
+    fetchedData.forEach(item => {
+        ['casual_score', 'normal_score', 'hard_score', 'expert_score'].forEach(key => {
+            if (item[key] !== null && item[key] !== undefined) {
+                grandTotalScore += parseInt(item[key]);
+            }
+        });
+    });
+
+    // 2. 전체 채보 수 = 전체 곡 수 * 4
+    const totalChartCount = allSongsList.length * 4;
+    let avgPercentageStr = '0.00%';
+
+    if (totalChartCount > 0) {
+        // 기준점수 = 전체 채보 수 * 1,000,000점
+        const baseScore = totalChartCount * 1000000;
+        
+        // 퍼센트 변환 (예: 100.04122...)
+        const rawPercentage = (grandTotalScore / baseScore) * 100;
+
+        // 🎯 소수점 둘째 자리 올림 처리 (Math.ceil)
+        const roundedPercentage = (Math.ceil(rawPercentage * 100) / 100).toFixed(2);
+
+        avgPercentageStr = `${roundedPercentage}%`;
+    }
+
+    // 3. 화면 UI 업데이트
+    totalScoreElem.innerText = grandTotalScore.toLocaleString();
+    avgScoreElem.innerText = avgPercentageStr;
+}
+
 // 2. 테이블 렌더링
 function renderTable(dataList) {
     const tableBody = document.getElementById('tableBody');
@@ -153,6 +192,7 @@ function renderTable(dataList) {
 
     if (dataList.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="5">등록된 데이터가 없습니다.</td></tr>';
+        renderScoreSummary(); // 데이터 없을 때도 요약 갱신
         return;
     }
 
@@ -199,6 +239,9 @@ function renderTable(dataList) {
         `;
         tableBody.appendChild(tr);
     });
+
+    // 테이블 출력 후 총점/평균 요약 업데이트
+    renderScoreSummary();
 }
 
 // ✨ 공통: 선택된 곡의 기존 기록 및 정보 폼에 바인딩
