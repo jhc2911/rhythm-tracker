@@ -152,8 +152,9 @@ function renderScoreSummary() {
     if (!totalScoreElem || !avgScoreElem) return;
 
     let grandTotalScore = 0;
+    let totalNotesCount = 0;
 
-    // 1. 플레이 기록의 모든 난이도 점수 합산
+    // 1. 유저 플레이 기록 점수 합산
     fetchedData.forEach(item => {
         ['casual_score', 'normal_score', 'hard_score', 'expert_score'].forEach(key => {
             if (item[key] !== null && item[key] !== undefined) {
@@ -162,26 +163,41 @@ function renderScoreSummary() {
         });
     });
 
-    // 2. 전체 채보 수 = 전체 곡 수 * 4
+    // 2. 전체 곡의 총 노트 수 계산 (songs 데이터 기준)
+    allSongsList.forEach(song => {
+        totalNotesCount += (song.casual_notes || 0) +
+                           (song.normal_notes || 0) +
+                           (song.hard_notes || 0) +
+                           (song.expert_notes || 0);
+    });
+
+    // 3. 전체 채보 수 = 전체 곡 수 * 4
     const totalChartCount = allSongsList.length * 4;
+    
+    // 기본 백분율 기준점수 (채보수 * 1,000,000점)
+    const baseScore = totalChartCount * 1000000;
+
+    // 이론상 최대 만점 (기존 기준점수 + 총 노트 수)
+    const maxTheoreticalScore = baseScore + totalNotesCount;
+
     let avgPercentageStr = '0.00%';
+    let maxPercentageStr = '100.00%';
 
-    if (totalChartCount > 0) {
-        // 기준점수 = 전체 채보 수 * 1,000,000점
-        const baseScore = totalChartCount * 1000000;
-        
-        // 퍼센트 변환 (예: 100.04122...)
-        const rawPercentage = (grandTotalScore / baseScore) * 100;
+    if (baseScore > 0) {
+        // 달성 평균 백분율 계산 (소수점 둘째 자리 올림)
+        const rawAvgPct = (grandTotalScore / baseScore) * 100;
+        const roundedAvgPct = (Math.ceil(rawAvgPct * 100) / 100).toFixed(2);
+        avgPercentageStr = `${roundedAvgPct}%`;
 
-        // 🎯 소수점 둘째 자리 올림 처리 (Math.ceil)
-        const roundedPercentage = (Math.ceil(rawPercentage * 100) / 100).toFixed(2);
-
-        avgPercentageStr = `${roundedPercentage}%`;
+        // 이론상 만점 백분율 계산 (소수점 둘째 자리 올림)
+        const rawMaxPct = (maxTheoreticalScore / baseScore) * 100;
+        const roundedMaxPct = (Math.ceil(rawMaxPct * 100) / 100).toFixed(2);
+        maxPercentageStr = `${roundedMaxPct}%`;
     }
 
-    // 3. 화면 UI 업데이트
-    totalScoreElem.innerText = grandTotalScore.toLocaleString();
-    avgScoreElem.innerText = avgPercentageStr;
+    // 4. 화면 UI 업데이트 ( "현재점수 / 이론상 만점" 형태로 출력 )
+    totalScoreElem.innerText = `${grandTotalScore.toLocaleString()} / ${maxTheoreticalScore.toLocaleString()}`;
+    avgScoreElem.innerText = `${avgPercentageStr} / ${maxPercentageStr}`;
 }
 
 // 2. 테이블 렌더링
@@ -192,7 +208,7 @@ function renderTable(dataList) {
 
     if (dataList.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="5">등록된 데이터가 없습니다.</td></tr>';
-        renderScoreSummary(); // 데이터 없을 때도 요약 갱신
+        renderScoreSummary();
         return;
     }
 
@@ -240,7 +256,6 @@ function renderTable(dataList) {
         tableBody.appendChild(tr);
     });
 
-    // 테이블 출력 후 총점/평균 요약 업데이트
     renderScoreSummary();
 }
 
