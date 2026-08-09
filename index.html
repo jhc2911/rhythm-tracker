@@ -20,8 +20,6 @@
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            
-            /* ✨ [추가] 모바일 잘림 방지 스타일 */
             width: fit-content;
             min-width: 100%;
             box-sizing: border-box;
@@ -113,7 +111,7 @@
             display: flex;
             gap: 15px;
             margin-bottom: 20px;
-            flex-wrap: wrap; /* 모바일 반응형 처리 */
+            flex-wrap: wrap;
         }
         .score-card {
             flex: 1;
@@ -168,7 +166,6 @@
         }
         .submit-btn:hover { background-color: #27ae60; }
 
-        /* ✨ [추가] 모바일 가로 스크롤 래퍼 */
         .table-responsive {
             width: 100%;
             overflow-x: auto;
@@ -182,7 +179,7 @@
             width: 100%;
             border-collapse: collapse;
             background: white;
-            min-width: 750px; /* ✨ 모바일에서 테이블 안 구겨지는 최소 폭 */
+            min-width: 750px;
         }
         th, td {
             padding: 12px 10px;
@@ -199,7 +196,6 @@
         th:hover { background-color: #f1f2f4; }
         .sort-icon { font-size: 12px; margin-left: 3px; color: #aaa; }
 
-        /* 테이블 배경색 농도 유지 */
         .col-casual { background-color: rgba(77, 124, 83, 0.13); }
         .col-normal { background-color: rgba(191, 161, 40, 0.12); }
         .col-hard { background-color: rgba(166, 50, 68, 0.12); }
@@ -224,13 +220,11 @@
             display: inline-block;
         }
         
-        /* 1. CLEAR: 선명한 주황색 계열 단색 */
         .status-clear {
             color: #f39c12; 
             text-shadow: 0 0 1px rgba(0,0,0,0.1);
         }
 
-        /* 2. FULL COMBO: 노랑 ~ 빨강 스펙트럼 그라데이션 */
         .status-fc {
             background: linear-gradient(90deg, #ffd43b 0%, #ff922b 60%, #f03e3e 100%);
             -webkit-background-clip: text;
@@ -239,7 +233,6 @@
             filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.2)) drop-shadow(0px 0px 1px rgba(133, 100, 4, 0.5));
         }
 
-        /* 3. ALL PERFECT: 파랑 ~ 보라 ~ 핑크 청량한 스펙트럼 그라데이션 */
         .status-ap {
             background: linear-gradient(90deg, #4dabf7 0%, #748ffc 35%, #b57bed 70%, #f783ac 100%);
             -webkit-background-clip: text;
@@ -248,7 +241,6 @@
             filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.15));
         }
 
-        /* 4. ALL PERFECT+: AP와 색상은 같으나 영롱하게 흐르며 빛나는 그라데이션 애니메이션 추가 */
         .status-applus {
             background: linear-gradient(90deg, #4dabf7 0%, #b57bed 30%, #f783ac 50%, #4dabf7 70%, #b57bed 100%);
             background-size: 200% auto;
@@ -285,7 +277,6 @@
             box-shadow: 0 0 4px rgba(12, 133, 153, 0.4);
         }
 
-        /* 전 난이도 AP+ 졸업 곡 셀 전용 붉은색 테마 디자인 */
         .graduated-song-cell {
             background: linear-gradient(135deg, #fff0f2 0%, #ffe3e6 100%) !important;
             border-left: 4px solid #e63946 !important;
@@ -306,7 +297,7 @@
             box-shadow: 0 0 4px rgba(252, 196, 25, 0.5);
         }
 
-        /* 레벨별 통계 전용 표 세로 구분선 및 스타일 */
+        /* 통계 표 세로 구분선 및 스타일 */
         .stats-table th, .stats-table td {
             border-right: 1px solid #eaeaea;
         }
@@ -332,7 +323,6 @@
             border-bottom: 2px solid #ddd;
         }
 
-        /* 통계 헤더 악곡 / 채보 수 배지 스타일 */
         .stats-summary-badge {
             font-size: 14px;
             font-weight: normal;
@@ -345,17 +335,15 @@
             vertical-align: middle;
         }
 
-        /* 곡 제목 셀 내부 레이아웃 */
         .song-info-cell { 
             background-color: rgba(224, 242, 254, 0.4); 
             text-align: left;
             display: flex;
             justify-content: space-between;
-            align-items: flex-end; /* 아래쪽 정렬 */
+            align-items: flex-end;
             padding: 10px 15px;
         }
 
-        /* 악곡 팩 이름 텍스트 스타일 */
         .pack-name-text {
             font-size: 12px;
             color: #777;
@@ -365,20 +353,19 @@
             line-height: 1.2;
         }
 
-        /* 곡 제목 자동완성 드롭다운 스타일 */
         .dropdown-list {
             position: absolute;
             top: 100%;
             left: 0;
             right: 0;
-            max-height: 220px; /* 최대 높이 지정 후 스크롤 생성 */
+            max-height: 220px;
             overflow-y: auto;
             background: white;
             border: 1px solid #3b82f6;
             border-radius: 6px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 1000;
-            display: none; /* 기본 상태는 숨김 */
+            display: none;
             margin-top: 4px;
         }
 
@@ -436,14 +423,13 @@
             font-weight: 700;
         }
 
-        .selected-level-row {
+        .selected-filter-row {
             background-color: #e8f4ff !important;
         }
-        .selected-level-row td:first-child {
+        .selected-filter-row td:first-child {
             color: #0056b3 !important;
             font-weight: 800 !important;
         }
-
     </style>
 </head>
 <body>
@@ -459,25 +445,20 @@
         <h3>새 플레이 기록 등록 / 업데이트</h3>
         
         <div class="id-input-container">
-            <!-- 1. 곡 ID 입력창 -->
             <div class="id-input-group">
                 <label for="songId">곡 ID</label>
                 <input type="number" id="songId" placeholder="예: 1" oninput="onSongIdInput()">
             </div>
 
-            <!-- 2. 곡 제목 검색 & 선택 입력창 (자동완성 드롭다운) -->
             <div class="id-input-group" style="max-width: 350px; position: relative;">
                 <label for="songTitleInput">곡 제목 검색 / 선택</label>
                 <input type="text" id="songTitleInput" placeholder="곡 제목 입력 또는 클릭" autocomplete="off" onfocus="showSongDropdown()" oninput="filterSongDropdown()">
-                
-                <!-- 커스텀 드롭다운 목록 (스크롤 지원) -->
                 <div id="songDropdownList" class="dropdown-list"></div>
             </div>
         </div>
 
         <label style="display:block; font-weight:bold; margin-bottom:8px; color:#555;">난이도별 점수 및 클리어 상태 입력</label>
         <div class="score-grid">
-            <!-- Casual -->
             <div class="score-card card-casual">
                 <label for="casualScore">CASUAL 설정</label>
                 <input type="number" id="casualScore" placeholder="점수 입력">
@@ -488,7 +469,6 @@
                     <option value="AP+">ALL PERFECT+</option>
                 </select>
             </div>
-            <!-- Normal -->
             <div class="score-card card-normal">
                 <label for="normalScore">NORMAL 설정</label>
                 <input type="number" id="normalScore" placeholder="점수 입력">
@@ -499,7 +479,6 @@
                     <option value="AP+">ALL PERFECT+</option>
                 </select>
             </div>
-            <!-- Hard -->
             <div class="score-card card-hard">
                 <label for="hardScore">HARD 설정</label>
                 <input type="number" id="hardScore" placeholder="점수 입력">
@@ -510,7 +489,6 @@
                     <option value="AP+">ALL PERFECT+</option>
                 </select>
             </div>
-            <!-- Expert -->
             <div class="score-card card-expert">
                 <label for="expertScore">EXPERT 설정</label>
                 <input type="number" id="expertScore" placeholder="점수 입력">
@@ -530,10 +508,10 @@
     <h2 style="margin-top: 40px; display: flex; align-items: center;">
         📊 레벨별 통계 
         <span class="stats-summary-badge" id="statsSummary">
-            총 <strong>45</strong>곡 (<strong>180</strong>개 채보)
+            총 <strong>-</strong>곡 (<strong>-</strong>개 채보)
         </span>
     </h2>
-    <div class="table-responsive" style="margin-bottom: 50px;">
+    <div class="table-responsive" style="margin-bottom: 40px;">
         <table class="stats-table">
             <thead>
                 <tr>
@@ -545,7 +523,28 @@
                 </tr>
             </thead>
             <tbody id="statsTableBody">
-                <!-- 자바스크립트에서 동적으로 생성됩니다 -->
+                <!-- 동적 생성 -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 📦 앨범별 통계 섹션 (새로 추가) -->
+    <h2 style="margin-top: 20px; display: flex; align-items: center;">
+        📦 앨범별 통계
+    </h2>
+    <div class="table-responsive" style="margin-bottom: 50px;">
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th style="width: 20%;">PACK</th>
+                    <th style="width: 20%;">ALL PERFECT+ (비율)</th>
+                    <th style="width: 20%;">ALL PERFECT (비율)</th>
+                    <th style="width: 20%;">FULL COMBO (비율)</th>
+                    <th style="width: 20%;">CLEAR (비율)</th>
+                </tr>
+            </thead>
+            <tbody id="packStatsTableBody">
+                <!-- 동적 생성 -->
             </tbody>
         </table>
     </div>

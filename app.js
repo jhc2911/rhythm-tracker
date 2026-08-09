@@ -6,6 +6,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let fetchedData = [];          // 유저의 플레이 기록 (records 테이블)
 let allSongsList = [];         // 전체 곡 목록 (songs 테이블)
 let selectedLevelFilter = null; // 🎯 레벨 필터 상태 (null이면 전체 출력)
+let selectedPackFilter = null;  // 📦 앨범 필터 상태 (null이면 전체 출력)
 
 // [기본 정렬 설정]
 let currentSortColumn = 'title'; 
@@ -82,7 +83,8 @@ async function loadRecords() {
     applySort(currentSortColumn, isAscending);
     updateSortIcons();
     applyCurrentFilterAndRender(); // 필터 적용 후 테이블 출력
-    renderStatsTable();
+    renderStatsTable();     // 레벨별 통계 출력
+    renderPackStatsTable(); // 앨범별 통계 출력
 }
 
 // 공통 정렬 로직 함수
@@ -185,33 +187,33 @@ function renderScoreSummary() {
     let maxPercentageStr = '100.00%';
 
     if (baseScore > 0) {
-        // 달성 평균 백분율 계산 (소수점 둘째 자리 올림)
+        // 달성 평균 백분율 계산
         const rawAvgPct = (grandTotalScore / baseScore) * 100;
         const roundedAvgPct = (Math.ceil(rawAvgPct * 100) / 100).toFixed(2);
         avgPercentageStr = `${roundedAvgPct}%`;
 
-        // 이론상 만점 백분율 계산 (소수점 둘째 자리 올림)
+        // 이론상 만점 백분율 계산
         const rawMaxPct = (maxTheoreticalScore / baseScore) * 100;
         const roundedMaxPct = (Math.ceil(rawMaxPct * 100) / 100).toFixed(2);
         maxPercentageStr = `${roundedMaxPct}%`;
     }
 
-    // 4. 화면 UI 업데이트 ( "현재점수 / 이론상 만점" 형태로 출력 )
+    // 4. 화면 UI 업데이트
     totalScoreElem.innerText = `${grandTotalScore.toLocaleString()} / ${maxTheoreticalScore.toLocaleString()}`;
     avgScoreElem.innerText = `${avgPercentageStr} / ${maxPercentageStr}`;
 }
 
-// 🎯 레벨 필터링 처리 및 테이블 렌더링 연결 함수
+// 🎯 필터링 처리 및 테이블 렌더링 연결 함수
 function applyCurrentFilterAndRender() {
     let displayList = fetchedData;
 
+    // 1. 레벨 필터링
     if (selectedLevelFilter !== null) {
         const targetLv = parseInt(selectedLevelFilter);
-        displayList = fetchedData.filter(item => {
+        displayList = displayList.filter(item => {
             const song = item.songs;
             if (!song) return false;
 
-            // CASUAL, NORMAL, HARD, EXPERT 중 하나라도 해당 레벨이면 포함
             return Number(song.casual_level) === targetLv ||
                    Number(song.normal_level) === targetLv ||
                    Number(song.hard_level) === targetLv ||
@@ -219,26 +221,51 @@ function applyCurrentFilterAndRender() {
         });
     }
 
+    // 2. 앨범 필터링
+    if (selectedPackFilter !== null) {
+        displayList = displayList.filter(item => {
+            const song = item.songs;
+            if (!song) return false;
+            const packName = song.pack_name || 'TRACING THE STARS';
+            return packName === selectedPackFilter;
+        });
+    }
+
     renderTable(displayList);
 }
 
-// 🎯 통계 표에서 레벨/TOTAL 클릭 시 실행되는 함수
+// 🎯 레벨 필터링 제어
 function filterByLevel(level) {
-    selectedLevelFilter = level; // null이면 TOTAL (전체)
-
-    // 선택된 행 스타일 하이라이트 처리
-    document.querySelectorAll('#statsTableBody tr').forEach(tr => tr.classList.remove('selected-level-row'));
-    if (level !== null) {
-        const activeRow = document.getElementById(`stats-row-lv-${level}`);
-        if (activeRow) activeRow.classList.add('selected-level-row');
+    if (selectedLevelFilter === level) {
+        selectedLevelFilter = null; // 같은 레벨 다시 클릭 시 해제
     } else {
-        const totalRow = document.getElementById('stats-row-total');
-        if (totalRow) totalRow.classList.add('selected-level-row');
+        selectedLevelFilter = level;
+        selectedPackFilter = null; // 앨범 필터 해제
     }
 
+    renderStatsTable();
+    renderPackStatsTable();
     applyCurrentFilterAndRender();
 
-    // 레벨 클릭 후 아래 플레이 기록 목록으로 자연스럽게 스크롤 이동
+    const summaryElem = document.getElementById('scoreSummaryContainer') || document.getElementById('tableBody');
+    if (summaryElem) {
+        summaryElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+// 📦 앨범 필터링 제어
+function filterByPack(packName) {
+    if (selectedPackFilter === packName) {
+        selectedPackFilter = null; // 같은 앨범 다시 클릭 시 해제
+    } else {
+        selectedPackFilter = packName;
+        selectedLevelFilter = null; // 레벨 필터 해제
+    }
+
+    renderStatsTable();
+    renderPackStatsTable();
+    applyCurrentFilterAndRender();
+
     const summaryElem = document.getElementById('scoreSummaryContainer') || document.getElementById('tableBody');
     if (summaryElem) {
         summaryElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -265,7 +292,6 @@ function renderTable(dataList) {
         tr.style.cursor = 'pointer';
         tr.onclick = function() { selectSong(item.song_id); };
 
-        // 🎯 [수정됨] 레벨 표기 렌더링 - 선택한 필터 레벨과 일치할 경우 붉은색 강조
         const l = (level) => {
             if (level === null || level === undefined) return '';
             
@@ -346,7 +372,6 @@ function selectSong(songId) {
     
     songIdInput.value = songId;
     
-    // allSongsList에서 곡 제목 가져와 채우기
     const foundSong = allSongsList.find(s => Number(s.id) === Number(songId));
     if (foundSong && titleInput) {
         titleInput.value = foundSong.title;
@@ -384,7 +409,6 @@ function showSongDropdown() {
     filterSongDropdown();
 }
 
-// 🔥 검색어 필터링 알고리즘 (제목 첫 글자 시작만 출력)
 function filterSongDropdown() {
     const titleInput = document.getElementById('songTitleInput');
     const dropdown = document.getElementById('songDropdownList');
@@ -398,13 +422,11 @@ function filterSongDropdown() {
         return;
     }
 
-    // 키워드가 비어있으면 전체 목록 출력
     if (!keyword) {
         renderDropdownItems(allSongsList);
         return;
     }
 
-    // 🎯 검색어(알파벳/문자)로 시작하는 곡만 필터링
     const filtered = allSongsList.filter(song => 
         song.title && song.title.toLowerCase().startsWith(keyword)
     );
@@ -412,7 +434,6 @@ function filterSongDropdown() {
     renderDropdownItems(filtered);
 }
 
-// 드롭다운 HTML 렌더링 헬퍼 함수
 function renderDropdownItems(list) {
     const dropdown = document.getElementById('songDropdownList');
     
@@ -446,7 +467,7 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// 사용자가 헤더를 수동으로 클릭했을 때의 정렬 처리
+// 정렬 처리
 function sortTable(column) {
     if (currentSortColumn === column) {
         isAscending = !isAscending;
@@ -556,7 +577,6 @@ function renderStatsTable() {
         return `(${(count / total * 100).toFixed(1)}%)`;
     };
 
-    // Level 1 ~ 19 행 생성 (첫 번째 셀에 클릭 이벤트 연결)
     for (let lv = 1; lv <= 19; lv++) {
         const row = stats[lv];
         const tr = document.createElement('tr');
@@ -575,11 +595,10 @@ function renderStatsTable() {
         statsBody.appendChild(tr);
     }
 
-    // TOTAL 행 생성 (클릭 시 전체 리스트 출력)
     const totalTr = document.createElement('tr');
     totalTr.id = 'stats-row-total';
     totalTr.className = 'total-row';
-    if (selectedLevelFilter === null) {
+    if (selectedLevelFilter === null && selectedPackFilter === null) {
         totalTr.classList.add('selected-level-row');
     }
 
@@ -599,4 +618,93 @@ function renderStatsTable() {
     if (statsSummary) {
         statsSummary.innerHTML = `총 <strong>${songCount}</strong>곡 (<strong>${chartCount}</strong>개 채보)`;
     }
+}
+
+// 📦 앨범별 통계 계산 및 렌더링 함수
+function renderPackStatsTable() {
+    const packBody = document.getElementById('packStatsTableBody');
+    if (!packBody) return;
+    packBody.innerHTML = '';
+
+    const packStatsMap = {};
+    const totalStats = { total: 0, applus: 0, ap: 0, fc: 0, clear: 0 };
+
+    fetchedData.forEach(item => {
+        const song = item.songs;
+        if (!song) return;
+
+        const packName = song.pack_name || 'TRACING THE STARS';
+
+        if (!packStatsMap[packName]) {
+            packStatsMap[packName] = { total: 0, applus: 0, ap: 0, fc: 0, clear: 0 };
+        }
+
+        const difficulties = [
+            { score: item.casual_score, status: item.casual_status, level: song.casual_level },
+            { score: item.normal_score, status: item.normal_status, level: song.normal_level },
+            { score: item.hard_score, status: item.hard_status, level: song.hard_level },
+            { score: item.expert_score, status: item.expert_status, level: song.expert_level }
+        ];
+
+        difficulties.forEach(diff => {
+            if (diff.score !== null && diff.score !== undefined && diff.level) {
+                packStatsMap[packName].total += 1;
+                totalStats.total += 1;
+
+                if (diff.status === 'AP+') {
+                    packStatsMap[packName].applus += 1; packStatsMap[packName].ap += 1; packStatsMap[packName].fc += 1; packStatsMap[packName].clear += 1;
+                    totalStats.applus += 1; totalStats.ap += 1; totalStats.fc += 1; totalStats.clear += 1;
+                } else if (diff.status === 'AP') {
+                    packStatsMap[packName].ap += 1; packStatsMap[packName].fc += 1; packStatsMap[packName].clear += 1;
+                    totalStats.ap += 1; totalStats.fc += 1; totalStats.clear += 1;
+                } else if (diff.status === 'FC') {
+                    packStatsMap[packName].fc += 1; packStatsMap[packName].clear += 1;
+                    totalStats.fc += 1; totalStats.clear += 1;
+                } else {
+                    packStatsMap[packName].clear += 1;
+                    totalStats.clear += 1;
+                }
+            }
+        });
+    });
+
+    const getRateStr = (count, total) => {
+        if (total === 0) return '(0.0%)';
+        return `(${(count / total * 100).toFixed(1)}%)`;
+    };
+
+    const sortedPacks = Object.keys(packStatsMap).sort();
+
+    sortedPacks.forEach(packName => {
+        const row = packStatsMap[packName];
+        const tr = document.createElement('tr');
+        if (selectedPackFilter === packName) {
+            tr.classList.add('selected-level-row');
+        }
+
+        tr.innerHTML = `
+            <td onclick="filterByPack('${packName.replace(/'/g, "\\'")}')" style="font-weight: bold; color: #333; cursor: pointer; text-decoration: underline;" title="${packName} 필터링">${packName}</td>
+            <td><span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span></td>
+            <td><span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span></td>
+            <td><span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span></td>
+            <td><span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span></td>
+        `;
+        packBody.appendChild(tr);
+    });
+
+    // TOTAL 행
+    const totalTr = document.createElement('tr');
+    totalTr.className = 'total-row';
+    if (selectedLevelFilter === null && selectedPackFilter === null) {
+        totalTr.classList.add('selected-level-row');
+    }
+
+    totalTr.innerHTML = `
+        <td onclick="filterByPack(null)" style="cursor: pointer; text-decoration: underline;" title="전체 목록 보기">TOTAL</td>
+        <td><span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span></td>
+        <td><span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span></td>
+        <td><span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span></td>
+        <td><span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span></td>
+    `;
+    packBody.appendChild(totalTr);
 }
