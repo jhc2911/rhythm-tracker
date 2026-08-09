@@ -265,10 +265,17 @@ function renderTable(dataList) {
         tr.style.cursor = 'pointer';
         tr.onclick = function() { selectSong(item.song_id); };
 
+        // 🎯 [수정됨] 레벨 표기 렌더링 - 선택한 필터 레벨과 일치할 경우 붉은색 강조
         const l = (level) => {
             if (level === null || level === undefined) return '';
+            
+            const isHighlighted = selectedLevelFilter !== null && Number(level) === Number(selectedLevelFilter);
+            const style = isHighlighted
+                ? 'font-size: 11px; color: #ff3333; font-weight: bold; margin-top: 3px; text-align: center; width: 100%;'
+                : 'font-size: 11px; color: #888; margin-top: 3px; text-align: center; width: 100%;';
+
             return `
-                <div style="font-size: 11px; color: #888; margin-top: 3px; text-align: center; width: 100%;">
+                <div style="${style}">
                     (Lv.${level})
                 </div>
             `;
