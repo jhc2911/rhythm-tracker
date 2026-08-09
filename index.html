@@ -38,6 +38,27 @@
             padding-bottom: 15px;
             margin-bottom: 25px;
         }
+        /* 오른쪽 버튼 그룹 (버튼 사이 간격을 10px로 유지) */
+        .header-btns {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        /* 다크모드 버튼 예쁜 스타일링 */
+        .theme-toggle-btn {
+            padding: 8px 14px;
+            background-color: #f0f2f5;
+            color: #333;
+            border: 1px solid #dcdfe6;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .theme-toggle-btn:hover {
+            background-color: #e4e7ed;
+        }
         h1 { margin: 0; color: #333; font-size: 28px; }
         .logout-btn {
             padding: 8px 16px;
@@ -457,6 +478,14 @@
         body.dark-mode .header-area {
             border-bottom-color: #333;
         }
+        body.dark-mode .theme-toggle-btn {
+            background-color: #2d2d2d;
+            color: #f0f0f0;
+            border-color: #444;
+        }
+        body.dark-mode .theme-toggle-btn:hover {
+            background-color: #3a3a3a;
+        }
         body.dark-mode h1, 
         body.dark-mode h2, 
         body.dark-mode .form-section h3 {
@@ -585,13 +614,16 @@
 <div class="container">
     <div class="header-area">
         <h1>🎵 니케 리듬게임 개인 기록 관리</h1>
-        <!-- 다크모드 토글 버튼 -->
-        <button id="themeToggleBtn" onclick="toggleDarkMode()" style="cursor: pointer; padding: 6px 12px; border-radius: 4px;">
-            🌙 다크모드
-        </button>
-        <button class="logout-btn" onclick="handleLogout()">
-            로그아웃
-        </button>
+        
+        <!-- 오른쪽 버튼 그룹 -->
+        <div class="header-btns">
+            <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
+                🌙 다크모드
+            </button>
+            <button class="logout-btn" onclick="handleLogout()">
+                로그아웃
+            </button>
+        </div>
     </div>
 
     <!-- 새 플레이 기록 등록 / 업데이트 폼 -->
