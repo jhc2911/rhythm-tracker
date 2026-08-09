@@ -7,11 +7,16 @@
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* ==========================================
+           1. 기본 (라이트 모드) 스타일
+           ========================================== */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f6f9;
+            color: #333;
             margin: 0;
             padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
         }
         .container {
             max-width: 1200px;
@@ -23,6 +28,7 @@
             width: fit-content;
             min-width: 100%;
             box-sizing: border-box;
+            transition: background 0.3s, box-shadow 0.3s;
         }
         .header-area {
             display: flex;
@@ -52,6 +58,7 @@
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 35px;
+            transition: background-color 0.3s, border-color 0.3s;
         }
         .form-section h3 { margin-top: 0; margin-bottom: 15px; color: #444; }
         
@@ -121,6 +128,7 @@
             border-top: 5px solid #ccc;
             background: #fff;
             box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            transition: background 0.3s;
         }
         .score-card label {
             display: block;
@@ -430,6 +438,146 @@
             color: #0056b3 !important;
             font-weight: 800 !important;
         }
+
+
+        /* ==========================================
+           2. 🌙 다크모드 전용 스타일 덮어쓰기
+           (body 태그에 dark-mode 클래스가 추가될 때 동작)
+           ========================================== */
+        body.dark-mode {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
+        /* 메인 컨테이너 & 입력 폼 */
+        body.dark-mode .container {
+            background-color: #1e1e1e;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        body.dark-mode .header-area {
+            border-bottom-color: #333;
+        }
+        body.dark-mode h1, 
+        body.dark-mode h2, 
+        body.dark-mode .form-section h3 {
+            color: #f0f0f0;
+        }
+        body.dark-mode .form-section {
+            background-color: #262626;
+            border-color: #3a3a3a;
+        }
+        body.dark-mode .id-input-group label {
+            color: #aaa;
+        }
+        body.dark-mode input, 
+        body.dark-mode select {
+            background-color: #2d2d2d;
+            color: #fff;
+            border: 1px solid #444;
+        }
+        body.dark-mode .song-name-display {
+            color: #64b5f6;
+        }
+
+        /* 난이도 카드 (어두운 배경에 눈이 편한 투명도 적용) */
+        body.dark-mode .score-card {
+            background-color: #2d2d2d;
+        }
+        body.dark-mode .card-casual { background-color: rgba(77, 124, 83, 0.25); }
+        body.dark-mode .card-normal { background-color: rgba(191, 161, 40, 0.25); }
+        body.dark-mode .card-hard { background-color: rgba(166, 50, 68, 0.25); }
+        body.dark-mode .card-expert { background-color: rgba(120, 50, 166, 0.25); }
+        body.dark-mode .card-casual label { color: #81c784; }
+        body.dark-mode .card-normal label { color: #ffd54f; }
+        body.dark-mode .card-hard label { color: #e57373; }
+        body.dark-mode .card-expert label { color: #ba68c8; }
+
+        /* 테이블 */
+        body.dark-mode table {
+            background-color: #1e1e1e;
+        }
+        body.dark-mode th, 
+        body.dark-mode td {
+            border-bottom-color: #2d2d2d;
+            color: #ddd;
+        }
+        body.dark-mode th {
+            background-color: #2a2a2a;
+            color: #bbb;
+        }
+        body.dark-mode th:hover {
+            background-color: #333;
+        }
+        body.dark-mode tbody tr:hover {
+            background-color: #2a2a2a;
+        }
+        body.dark-mode .song-title {
+            color: #f0f0f0;
+        }
+        body.dark-mode .song-composer, 
+        body.dark-mode .pack-name-text,
+        body.dark-mode .stats-rate {
+            color: #aaa;
+        }
+
+        /* 테이블 난이도 열 배경색 다크모드 맞춤 */
+        body.dark-mode .song-info-cell { background-color: rgba(224, 242, 254, 0.08); }
+        body.dark-mode .col-casual { background-color: rgba(77, 124, 83, 0.2); }
+        body.dark-mode .col-normal { background-color: rgba(191, 161, 40, 0.2); }
+        body.dark-mode .col-hard { background-color: rgba(166, 50, 68, 0.2); }
+        body.dark-mode .col-expert { background-color: rgba(120, 50, 166, 0.2); }
+
+        /* 졸업(Master) 곡 세부 스타일 */
+        body.dark-mode .graduated-song-cell {
+            background: linear-gradient(135deg, rgba(230, 57, 70, 0.25) 0%, rgba(200, 40, 60, 0.25) 100%) !important;
+            border-left-color: #ff6b6b !important;
+        }
+
+        /* 요약 및 통계 상자 */
+        body.dark-mode .score-summary-container,
+        body.dark-mode .total-row {
+            background-color: #262626;
+            border-color: #3a3a3a;
+        }
+        body.dark-mode .total-row td {
+            border-top-color: #444;
+            border-bottom-color: #444;
+        }
+        body.dark-mode .summary-label,
+        body.dark-mode .score-summary-item {
+            color: #ddd;
+        }
+        body.dark-mode .summary-value {
+            color: #64b5f6;
+        }
+        body.dark-mode .stats-summary-badge {
+            background-color: #1e3a5f;
+            border-color: #2b5278;
+            color: #90caf9;
+        }
+        body.dark-mode .selected-filter-row {
+            background-color: #1a365d !important;
+        }
+        body.dark-mode .selected-filter-row td:first-child {
+            color: #64b5f6 !important;
+        }
+
+        /* 드롭다운 메뉴 */
+        body.dark-mode .dropdown-list {
+            background-color: #252525;
+            border-color: #444;
+        }
+        body.dark-mode .dropdown-item {
+            border-bottom-color: #333;
+            color: #eee;
+        }
+        body.dark-mode .dropdown-item:hover {
+            background-color: #333;
+        }
+        body.dark-mode .dropdown-item .item-id {
+            background-color: #444;
+            color: #bbb;
+        }
     </style>
 </head>
 <body>
@@ -437,7 +585,13 @@
 <div class="container">
     <div class="header-area">
         <h1>🎵 니케 리듬게임 개인 기록 관리</h1>
-        <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
+        <!-- 다크모드 토글 버튼 -->
+        <button id="themeToggleBtn" onclick="toggleDarkMode()" style="cursor: pointer; padding: 6px 12px; border-radius: 4px;">
+            🌙 다크모드
+        </button>
+        <button class="logout-btn" onclick="handleLogout()">
+            로그아웃
+        </button>
     </div>
 
     <!-- 새 플레이 기록 등록 / 업데이트 폼 -->

@@ -724,3 +724,28 @@ function renderPackStatsTable() {
     `;
     packBody.appendChild(totalTr);
 }
+
+// 페이지 로드 시 기존에 설정한 테마 불러오기
+document.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('theme');
+    const toggleBtn = document.getElementById('themeToggleBtn');
+
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+        if (toggleBtn) toggleBtn.innerText = '☀️ 라이트모드';
+    }
+});
+
+// 다크모드 토글 함수
+function toggleDarkMode() {
+    const isDark = document.body.classList.toggle('dark-mode');
+    const toggleBtn = document.getElementById('themeToggleBtn');
+
+    if (isDark) {
+        localStorage.setItem('theme', 'dark');
+        if (toggleBtn) toggleBtn.innerText = '☀️ 라이트모드';
+    } else {
+        localStorage.setItem('theme', 'light');
+        if (toggleBtn) toggleBtn.innerText = '🌙 다크모드';
+    }
+}
