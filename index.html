@@ -646,6 +646,17 @@
             background-color: #444 !important;
             color: #bbb !important;
         }
+        /* 졸업(Master) 곡 셀 배경 및 MASTER 뱃지 다크모드 보정 */
+        body.dark-mode .graduated-song-cell {
+            background: linear-gradient(135deg, rgba(230, 57, 70, 0.25) 0%, rgba(150, 30, 45, 0.25) 100%) !important;
+            border-left: 4px solid #ff6b6b !important;
+        }
+        body.dark-mode .graduated-badge {
+            background-color: #2b1d24 !important; /* 다크모드용 은은한 어두운 와인/핑크 배경 */
+            color: #ff77a9 !important;            /* 선명한 핑크색 MASTER 글자 */
+            border: 1px solid #ffd43b !important;  /* 눈에 잘 띄는 금색/노란색 테두리 */
+            box-shadow: 0 0 6px rgba(255, 212, 59, 0.4) !important;
+        }
     </style>
 </head>
 <body>
