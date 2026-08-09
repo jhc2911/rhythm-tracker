@@ -673,7 +673,23 @@ function renderPackStatsTable() {
         return `(${(count / total * 100).toFixed(1)}%)`;
     };
 
-    const sortedPacks = Object.keys(packStatsMap).sort();
+    // 🎯 앨범 출력 순서 지정
+    const packOrder = [
+        'TRACING THE STARS',
+        'T.T.S. EXTENSION PACK V.1',
+        'T.T.S. SUMMER PACK V.1'
+    ];
+
+    // 지정한 순서대로 정렬 (새로운 앨범이 추가되어도 오류 없이 맨 뒤로 붙음)
+    const sortedPacks = Object.keys(packStatsMap).sort((a, b) => {
+        let indexA = packOrder.indexOf(a);
+        let indexB = packOrder.indexOf(b);
+
+        if (indexA === -1) indexA = 999;
+        if (indexB === -1) indexB = 999;
+
+        return indexA - indexB;
+    });
 
     sortedPacks.forEach(packName => {
         const row = packStatsMap[packName];
