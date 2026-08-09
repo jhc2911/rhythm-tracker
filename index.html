@@ -462,7 +462,7 @@
 
 
         /* ==========================================
-           2. 🌙 다크모드 전용 스타일 덮어쓰기
+           2. 🌙 다크모드 전용 스타일 덮어쓰기 (최종 수정본)
            (body 태그에 dark-mode 클래스가 추가될 때 동작)
            ========================================== */
         body.dark-mode {
@@ -478,16 +478,22 @@
         body.dark-mode .header-area {
             border-bottom-color: #333;
         }
+        
+        /* 다크모드 토글 버튼 (버튼에 id="themeToggleBtn"만 있는 경우도 대응) */
+        body.dark-mode #themeToggleBtn,
         body.dark-mode .theme-toggle-btn {
-            background-color: #2d2d2d;
-            color: #f0f0f0;
-            border-color: #444;
+            background-color: #2d2d2d !important;
+            color: #f0f0f0 !important;
+            border: 1px solid #444 !important;
         }
+        body.dark-mode #themeToggleBtn:hover,
         body.dark-mode .theme-toggle-btn:hover {
-            background-color: #3a3a3a;
+            background-color: #3a3a3a !important;
         }
+
         body.dark-mode h1, 
         body.dark-mode h2, 
+        body.dark-mode h3,
         body.dark-mode .form-section h3 {
             color: #f0f0f0;
         }
@@ -511,6 +517,7 @@
         /* 난이도 카드 (어두운 배경에 눈이 편한 투명도 적용) */
         body.dark-mode .score-card {
             background-color: #2d2d2d;
+            border-color: #444;
         }
         body.dark-mode .card-casual { background-color: rgba(77, 124, 83, 0.25); }
         body.dark-mode .card-normal { background-color: rgba(191, 161, 40, 0.25); }
@@ -521,60 +528,73 @@
         body.dark-mode .card-hard label { color: #e57373; }
         body.dark-mode .card-expert label { color: #ba68c8; }
 
-        /* 테이블 */
+        /* ==========================================
+           테이블 & 텍스트 다크모드 가독성 보완 (수정 완료)
+           ========================================== */
         body.dark-mode table {
             background-color: #1e1e1e;
+            border-color: #333;
         }
+
+        /* 1) 표의 테두리 색상을 어두운 차분한 회색(#333)으로 일괄 통일 */
         body.dark-mode th, 
-        body.dark-mode td {
-            border-bottom-color: #2d2d2d;
-            color: #ddd;
+        body.dark-mode td,
+        body.dark-mode .stats-table th,
+        body.dark-mode .stats-table td {
+            border-color: #333 !important;
+            border-bottom-color: #333 !important;
+            border-right-color: #333 !important;
+            border-left-color: #333 !important;
+            border-top-color: #333 !important;
+            color: #dcdce0;
         }
         body.dark-mode th {
-            background-color: #2a2a2a;
-            color: #bbb;
+            background-color: #282828;
+            color: #e0e0e0;
         }
         body.dark-mode th:hover {
             background-color: #333;
         }
         body.dark-mode tbody tr:hover {
-            background-color: #2a2a2a;
+            background-color: rgba(255, 255, 255, 0.05);
         }
+
+        /* 2) 좌측 행(곡명, 작곡가, 팩 이름, 레벨 등) 밝은 색상 강제 적용 */
         body.dark-mode .song-title {
-            color: #f0f0f0;
+            color: #ffffff !important;
         }
         body.dark-mode .song-composer, 
         body.dark-mode .pack-name-text,
+        body.dark-mode .level-badge,
         body.dark-mode .stats-rate {
-            color: #aaa;
+            color: #b0b8c4 !important; /* 어두운 배경에서도 선명한 연회색 */
         }
 
-        /* 테이블 난이도 열 배경색 다크모드 맞춤 */
-        body.dark-mode .song-info-cell { background-color: rgba(224, 242, 254, 0.08); }
-        body.dark-mode .col-casual { background-color: rgba(77, 124, 83, 0.2); }
-        body.dark-mode .col-normal { background-color: rgba(191, 161, 40, 0.2); }
-        body.dark-mode .col-hard { background-color: rgba(166, 50, 68, 0.2); }
-        body.dark-mode .col-expert { background-color: rgba(120, 50, 166, 0.2); }
+        /* 테이블 난이도 열 배경 및 텍스트 보정 */
+        body.dark-mode .song-info-cell { 
+            background-color: #24282e !important; 
+        }
+        body.dark-mode .col-casual { background-color: rgba(77, 124, 83, 0.2) !important; }
+        body.dark-mode .col-normal { background-color: rgba(191, 161, 40, 0.2) !important; }
+        body.dark-mode .col-hard { background-color: rgba(166, 50, 68, 0.2) !important; }
+        body.dark-mode .col-expert { background-color: rgba(120, 50, 166, 0.2) !important; }
 
         /* 졸업(Master) 곡 세부 스타일 */
         body.dark-mode .graduated-song-cell {
-            background: linear-gradient(135deg, rgba(230, 57, 70, 0.25) 0%, rgba(200, 40, 60, 0.25) 100%) !important;
-            border-left-color: #ff6b6b !important;
+            background: linear-gradient(135deg, rgba(230, 57, 70, 0.3) 0%, rgba(150, 30, 45, 0.3) 100%) !important;
+            border-left: 4px solid #ff6b6b !important;
         }
 
         /* 요약 및 통계 상자 */
         body.dark-mode .score-summary-container,
-        body.dark-mode .total-row {
-            background-color: #262626;
-            border-color: #3a3a3a;
-        }
+        body.dark-mode .total-row,
         body.dark-mode .total-row td {
-            border-top-color: #444;
-            border-bottom-color: #444;
+            background-color: #252525 !important;
+            border-color: #383838 !important;
         }
         body.dark-mode .summary-label,
         body.dark-mode .score-summary-item {
-            color: #ddd;
+            color: #e0e0e0;
         }
         body.dark-mode .summary-value {
             color: #64b5f6;
