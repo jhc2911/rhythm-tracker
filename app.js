@@ -3,8 +3,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let fetchedData = [];      // 유저의 플레이 기록 (records 테이블)
-let allSongsList = [];     // 전체 곡 목록 (songs 테이블)
+let fetchedData = [];          // 유저의 플레이 기록 (records 테이블)
+let allSongsList = [];         // 전체 곡 목록 (songs 테이블)
+let selectedLevelFilter = null; // 🎯 레벨 필터 상태 (null이면 전체 출력)
 
 // [기본 정렬 설정]
 let currentSortColumn = 'title'; 
@@ -80,7 +81,7 @@ async function loadRecords() {
 
     applySort(currentSortColumn, isAscending);
     updateSortIcons();
-    renderTable(fetchedData);
+    applyCurrentFilterAndRender(); // 필터 적용 후 테이블 출력
     renderStatsTable();
 }
 
@@ -200,6 +201,50 @@ function renderScoreSummary() {
     avgScoreElem.innerText = `${avgPercentageStr} / ${maxPercentageStr}`;
 }
 
+// 🎯 레벨 필터링 처리 및 테이블 렌더링 연결 함수
+function applyCurrentFilterAndRender() {
+    let displayList = fetchedData;
+
+    if (selectedLevelFilter !== null) {
+        const targetLv = parseInt(selectedLevelFilter);
+        displayList = fetchedData.filter(item => {
+            const song = item.songs;
+            if (!song) return false;
+
+            // CASUAL, NORMAL, HARD, EXPERT 중 하나라도 해당 레벨이면 포함
+            return Number(song.casual_level) === targetLv ||
+                   Number(song.normal_level) === targetLv ||
+                   Number(song.hard_level) === targetLv ||
+                   Number(song.expert_level) === targetLv;
+        });
+    }
+
+    renderTable(displayList);
+}
+
+// 🎯 통계 표에서 레벨/TOTAL 클릭 시 실행되는 함수
+function filterByLevel(level) {
+    selectedLevelFilter = level; // null이면 TOTAL (전체)
+
+    // 선택된 행 스타일 하이라이트 처리
+    document.querySelectorAll('#statsTableBody tr').forEach(tr => tr.classList.remove('selected-level-row'));
+    if (level !== null) {
+        const activeRow = document.getElementById(`stats-row-lv-${level}`);
+        if (activeRow) activeRow.classList.add('selected-level-row');
+    } else {
+        const totalRow = document.getElementById('stats-row-total');
+        if (totalRow) totalRow.classList.add('selected-level-row');
+    }
+
+    applyCurrentFilterAndRender();
+
+    // 레벨 클릭 후 아래 플레이 기록 목록으로 자연스럽게 스크롤 이동
+    const summaryElem = document.getElementById('scoreSummaryContainer') || document.getElementById('tableBody');
+    if (summaryElem) {
+        summaryElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
 // 2. 테이블 렌더링
 function renderTable(dataList) {
     const tableBody = document.getElementById('tableBody');
@@ -207,7 +252,7 @@ function renderTable(dataList) {
     tableBody.innerHTML = '';
 
     if (dataList.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="5">등록된 데이터가 없습니다.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #888;">해당 조건에 일치하는 기록이 없습니다.</td></tr>';
         renderScoreSummary();
         return;
     }
@@ -405,7 +450,7 @@ function sortTable(column) {
 
     updateSortIcons();
     applySort(currentSortColumn, isAscending);
-    renderTable(fetchedData);
+    applyCurrentFilterAndRender();
 }
 
 // 4. 데이터 저장
@@ -504,12 +549,17 @@ function renderStatsTable() {
         return `(${(count / total * 100).toFixed(1)}%)`;
     };
 
+    // Level 1 ~ 19 행 생성 (첫 번째 셀에 클릭 이벤트 연결)
     for (let lv = 1; lv <= 19; lv++) {
         const row = stats[lv];
         const tr = document.createElement('tr');
+        tr.id = `stats-row-lv-${lv}`;
+        if (selectedLevelFilter === lv) {
+            tr.classList.add('selected-level-row');
+        }
 
         tr.innerHTML = `
-            <td style="font-weight: bold; color: #333;">Level ${lv}</td>
+            <td onclick="filterByLevel(${lv})" style="font-weight: bold; color: #333; cursor: pointer; text-decoration: underline;" title="Level ${lv} 필터링">Level ${lv}</td>
             <td><span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span></td>
             <td><span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span></td>
             <td><span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span></td>
@@ -518,10 +568,16 @@ function renderStatsTable() {
         statsBody.appendChild(tr);
     }
 
+    // TOTAL 행 생성 (클릭 시 전체 리스트 출력)
     const totalTr = document.createElement('tr');
+    totalTr.id = 'stats-row-total';
     totalTr.className = 'total-row';
+    if (selectedLevelFilter === null) {
+        totalTr.classList.add('selected-level-row');
+    }
+
     totalTr.innerHTML = `
-        <td>TOTAL</td>
+        <td onclick="filterByLevel(null)" style="cursor: pointer; text-decoration: underline;" title="전체 목록 보기">TOTAL</td>
         <td><span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span></td>
         <td><span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span></td>
         <td><span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span></td>
