@@ -1,4 +1,4 @@
-const SUPABASE_URL = 'https://qpcczmuwydpwpwpskoej.supabase.co'; 
+const SUPABASE_URL = 'https://qpcczmuwydpwpwpskoej.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2N6bXV3eWRwd3B3cHNrb2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NDgzNDEsImV4cCI6MjEwMDEyNDM0MX0.qje22MHokVuAXwrISej1KDrhFbFZFYgluzYwwdoO82I';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -8,6 +8,7 @@ let allSongsList = [];         // 전체 곡 목록 (songs 테이블)
 let selectedLevelFilter = null; // 🎯 레벨 필터 상태 (null이면 전체 출력)
 let selectedPackFilter = null;  // 📦 앨범 필터 상태 (null이면 전체 출력)
 let selectedStatusFilter = null; // 🏆 클리어 상태 필터 ('AP+', 'AP', 'FC', 'CLEAR', 'ALL', null)
+let isNegativeFilter = false;   // 🚨 false: 달성한 곡 / true: 미달성(NOT) 곡 필터링
 
 // [기본 정렬 설정]
 let currentSortColumn = 'title'; 
@@ -204,14 +205,24 @@ function renderScoreSummary() {
     avgScoreElem.innerText = `${avgPercentageStr} / ${maxPercentageStr}`;
 }
 
-// 🎯 클리어 상태 조건 판별 헬퍼 함수
-function isStatusMatched(status, requiredStatus) {
+// 🎯 클리어 상태 조건 판별 헬퍼 함수 (미달성 필터 지원)
+function isStatusMatched(status, requiredStatus, isNegative = false) {
     if (!requiredStatus || requiredStatus === 'ALL') return true;
-    if (requiredStatus === 'AP+') return status === 'AP+';
-    if (requiredStatus === 'AP') return status === 'AP+' || status === 'AP';
-    if (requiredStatus === 'FC') return status === 'AP+' || status === 'AP' || status === 'FC';
-    if (requiredStatus === 'CLEAR') return status && status !== 'NONE' && status !== 'FAILED';
-    return true;
+
+    let isMatch = false;
+
+    if (requiredStatus === 'AP+') {
+        isMatch = (status === 'AP+');
+    } else if (requiredStatus === 'AP') {
+        isMatch = (status === 'AP+' || status === 'AP');
+    } else if (requiredStatus === 'FC') {
+        isMatch = (status === 'AP+' || status === 'AP' || status === 'FC');
+    } else if (requiredStatus === 'CLEAR') {
+        isMatch = (status && status !== 'NONE' && status !== 'FAILED');
+    }
+
+    // 미달성(NOT) 필터 모드일 경우 반대 조건 반환
+    return isNegative ? !isMatch : isMatch;
 }
 
 // 🎯 필터링 처리 및 테이블 렌더링 연결 함수
@@ -234,7 +245,7 @@ function applyCurrentFilterAndRender() {
 
             return diffs.some(d => 
                 Number(d.level) === targetLv && 
-                isStatusMatched(d.status, selectedStatusFilter)
+                isStatusMatched(d.status, selectedStatusFilter, isNegativeFilter)
             );
         });
     }
@@ -250,33 +261,45 @@ function applyCurrentFilterAndRender() {
             if (!selectedStatusFilter || selectedStatusFilter === 'ALL') return true;
 
             const statuses = [item.casual_status, item.normal_status, item.hard_status, item.expert_status];
-            return statuses.some(st => isStatusMatched(st, selectedStatusFilter));
+            return statuses.some(st => isStatusMatched(st, selectedStatusFilter, isNegativeFilter));
         });
     }
 
-    // 3. 레벨/앨범 지정 없이 전체(TOTAL) 행에서 특정 클리어 상태 숫자 클릭 시
+    // 3. 레벨/앨범 지정 없이 전체(TOTAL) 행에서 특정 클리어 상태 클릭 시
     if (selectedLevelFilter === null && selectedPackFilter === null && selectedStatusFilter) {
         displayList = displayList.filter(item => {
             const statuses = [item.casual_status, item.normal_status, item.hard_status, item.expert_status];
-            return statuses.some(st => isStatusMatched(st, selectedStatusFilter));
+            return statuses.some(st => isStatusMatched(st, selectedStatusFilter, isNegativeFilter));
         });
     }
 
     renderTable(displayList);
 }
 
-// 🎯 통합 셀 필터링 제어 함수 (레벨/앨범/클리어 상태 교차)
-function filterCell(type, categoryValue, statusType) {
-    const isSameLevel = (type === 'level' && selectedLevelFilter === categoryValue && selectedStatusFilter === statusType);
-    const isSamePack = (type === 'pack' && selectedPackFilter === categoryValue && selectedStatusFilter === statusType);
+// 🎯 통합 셀 필터링 제어 함수 (좌클릭 = 달성, 우클릭 / Shift+클릭 = 미달성)
+function filterCell(e, type, categoryValue, statusType) {
+    if (e) {
+        if (e.type === 'contextmenu') {
+            e.preventDefault(); // 우클릭 메뉴 차단
+        }
+    }
+
+    // 우클릭(button === 2) 또는 Shift/Alt 키 누른 채 클릭 시 미달성(NOT) 조건 적용
+    const wantNegative = (e && (e.button === 2 || e.shiftKey || e.altKey));
+
+    const isSameLevel = (type === 'level' && selectedLevelFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
+    const isSamePack = (type === 'pack' && selectedPackFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
 
     if (isSameLevel || isSamePack) {
-        // 동일 셀 다시 클릭 시 필터 해제
+        // 동일 셀/모드 재클릭 시 필터 해제
         selectedLevelFilter = null;
         selectedPackFilter = null;
         selectedStatusFilter = null;
+        isNegativeFilter = false;
     } else {
         selectedStatusFilter = statusType;
+        isNegativeFilter = wantNegative;
+
         if (type === 'level') {
             selectedLevelFilter = categoryValue;
             selectedPackFilter = null;
@@ -296,13 +319,13 @@ function filterCell(type, categoryValue, statusType) {
     }
 }
 
-// 기존 레벨/앨범 단독 필터 함수 하위 호환성 유지
+// 하위 호환성 유지용 레벨/앨범 단독 필터 함수
 function filterByLevel(level) {
-    filterCell('level', level, null);
+    filterCell(null, 'level', level, null);
 }
 
 function filterByPack(packName) {
-    filterCell('pack', packName, null);
+    filterCell(null, 'pack', packName, null);
 }
 
 // 2. 테이블 렌더링
@@ -370,7 +393,7 @@ function renderTable(dataList) {
     renderScoreSummary();
 }
 
-// ✨ 공통: 선택된 곡의 기존 기록 및 정보 폼에 바인딩
+// ✨ 선택된 곡 기록 폼에 바인딩
 function loadExistingRecord(songId) {
     const record = fetchedData.find(item => item.song_id === songId);
     
@@ -398,7 +421,6 @@ function clearFormScores() {
     });
 }
 
-// ✨ 표에서 행 클릭 시 실행되는 함수
 function selectSong(songId) {
     const songIdInput = document.getElementById('songId');
     const titleInput = document.getElementById('songTitleInput');
@@ -414,7 +436,6 @@ function selectSong(songId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ✨ 곡 ID 입력창 제어 (수동 ID 입력 시)
 function onSongIdInput() {
     const songIdVal = document.getElementById('songId').value;
     const titleInput = document.getElementById('songTitleInput');
@@ -437,7 +458,6 @@ function onSongIdInput() {
     }
 }
 
-// ✨ 곡 제목 드롭다운 및 검색 로직
 function showSongDropdown() {
     filterSongDropdown();
 }
@@ -491,7 +511,6 @@ function selectSongFromDropdown(songId, songTitle) {
     loadExistingRecord(songId);
 }
 
-// 드롭다운 바깥 클릭 시 닫기
 document.addEventListener('click', function(e) {
     const container = document.getElementById('songTitleInput')?.parentElement;
     if (container && !container.contains(e.target)) {
@@ -500,7 +519,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// 정렬 처리
 function sortTable(column) {
     if (currentSortColumn === column) {
         isAscending = !isAscending;
@@ -514,7 +532,6 @@ function sortTable(column) {
     applyCurrentFilterAndRender();
 }
 
-// 4. 데이터 저장
 async function saveRecord() {
     const songId = document.getElementById('songId').value;
     if (!songId) {
@@ -611,8 +628,10 @@ function renderStatsTable() {
     };
 
     const isCellSelected = (type, val, status) => {
-        if (type === 'level') return selectedLevelFilter === val && selectedStatusFilter === status;
-        return false;
+        if (type === 'level' && selectedLevelFilter === val && selectedStatusFilter === status) {
+            return isNegativeFilter ? 'selected-cell-negative' : 'selected-cell-highlight';
+        }
+        return '';
     };
 
     for (let lv = 1; lv <= 19; lv++) {
@@ -621,11 +640,11 @@ function renderStatsTable() {
         tr.id = `stats-row-lv-${lv}`;
 
         tr.innerHTML = `
-            <td onclick="filterCell('level', ${lv}, null)" style="font-weight: bold; color: #333; cursor: pointer; text-decoration: underline;" title="Level ${lv} 전체 필터링">Level ${lv}</td>
-            <td onclick="filterCell('level', ${lv}, 'AP+')" style="cursor: pointer;" class="${isCellSelected('level', lv, 'AP+') ? 'selected-cell-highlight' : ''}"><span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span></td>
-            <td onclick="filterCell('level', ${lv}, 'AP')" style="cursor: pointer;" class="${isCellSelected('level', lv, 'AP') ? 'selected-cell-highlight' : ''}"><span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span></td>
-            <td onclick="filterCell('level', ${lv}, 'FC')" style="cursor: pointer;" class="${isCellSelected('level', lv, 'FC') ? 'selected-cell-highlight' : ''}"><span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span></td>
-            <td onclick="filterCell('level', ${lv}, 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('level', lv, 'CLEAR') ? 'selected-cell-highlight' : ''}"><span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span></td>
+            <td onclick="filterCell(event, 'level', ${lv}, null)" style="font-weight: bold; color: #333; cursor: pointer; text-decoration: underline;" title="Level ${lv} 전체 필터링">Level ${lv}</td>
+            <td onclick="filterCell(event, 'level', ${lv}, 'AP+')" oncontextmenu="filterCell(event, 'level', ${lv}, 'AP+')" style="cursor: pointer;" class="${isCellSelected('level', lv, 'AP+')}"><span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span></td>
+            <td onclick="filterCell(event, 'level', ${lv}, 'AP')" oncontextmenu="filterCell(event, 'level', ${lv}, 'AP')" style="cursor: pointer;" class="${isCellSelected('level', lv, 'AP')}"><span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span></td>
+            <td onclick="filterCell(event, 'level', ${lv}, 'FC')" oncontextmenu="filterCell(event, 'level', ${lv}, 'FC')" style="cursor: pointer;" class="${isCellSelected('level', lv, 'FC')}"><span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span></td>
+            <td onclick="filterCell(event, 'level', ${lv}, 'CLEAR')" oncontextmenu="filterCell(event, 'level', ${lv}, 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('level', lv, 'CLEAR')}"><span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span></td>
         `;
         statsBody.appendChild(tr);
     }
@@ -635,11 +654,11 @@ function renderStatsTable() {
     totalTr.className = 'total-row';
 
     totalTr.innerHTML = `
-        <td onclick="filterCell('level', null, null)" style="cursor: pointer; text-decoration: underline;" title="전체 목록 보기">TOTAL</td>
-        <td onclick="filterCell('level', null, 'AP+')" style="cursor: pointer;" class="${isCellSelected('level', null, 'AP+') ? 'selected-cell-highlight' : ''}"><span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span></td>
-        <td onclick="filterCell('level', null, 'AP')" style="cursor: pointer;" class="${isCellSelected('level', null, 'AP') ? 'selected-cell-highlight' : ''}"><span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span></td>
-        <td onclick="filterCell('level', null, 'FC')" style="cursor: pointer;" class="${isCellSelected('level', null, 'FC') ? 'selected-cell-highlight' : ''}"><span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span></td>
-        <td onclick="filterCell('level', null, 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('level', null, 'CLEAR') ? 'selected-cell-highlight' : ''}"><span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span></td>
+        <td onclick="filterCell(event, 'level', null, null)" style="cursor: pointer; text-decoration: underline;" title="전체 목록 보기">TOTAL</td>
+        <td onclick="filterCell(event, 'level', null, 'AP+')" oncontextmenu="filterCell(event, 'level', null, 'AP+')" style="cursor: pointer;" class="${isCellSelected('level', null, 'AP+')}"><span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span></td>
+        <td onclick="filterCell(event, 'level', null, 'AP')" oncontextmenu="filterCell(event, 'level', null, 'AP')" style="cursor: pointer;" class="${isCellSelected('level', null, 'AP')}"><span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span></td>
+        <td onclick="filterCell(event, 'level', null, 'FC')" oncontextmenu="filterCell(event, 'level', null, 'FC')" style="cursor: pointer;" class="${isCellSelected('level', null, 'FC')}"><span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span></td>
+        <td onclick="filterCell(event, 'level', null, 'CLEAR')" oncontextmenu="filterCell(event, 'level', null, 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('level', null, 'CLEAR')}"><span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span></td>
     `;
     statsBody.appendChild(totalTr);
 
@@ -706,11 +725,12 @@ function renderPackStatsTable() {
     };
 
     const isCellSelected = (type, val, status) => {
-        if (type === 'pack') return selectedPackFilter === val && selectedStatusFilter === status;
-        return false;
+        if (type === 'pack' && selectedPackFilter === val && selectedStatusFilter === status) {
+            return isNegativeFilter ? 'selected-cell-negative' : 'selected-cell-highlight';
+        }
+        return '';
     };
 
-    // 🎯 앨범 출력 순서 지정
     const packOrder = [
         'TRACING THE STARS',
         'T.T.S. EXTENSION PACK V.1',
@@ -733,30 +753,29 @@ function renderPackStatsTable() {
         const escapedPackName = packName.replace(/'/g, "\\'");
 
         tr.innerHTML = `
-            <td onclick="filterCell('pack', '${escapedPackName}', null)" style="font-weight: bold; color: #333; cursor: pointer; text-decoration: underline;" title="${packName} 전체 필터링">${packName}</td>
-            <td onclick="filterCell('pack', '${escapedPackName}', 'AP+')" style="cursor: pointer;" class="${isCellSelected('pack', packName, 'AP+') ? 'selected-cell-highlight' : ''}"><span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span></td>
-            <td onclick="filterCell('pack', '${escapedPackName}', 'AP')" style="cursor: pointer;" class="${isCellSelected('pack', packName, 'AP') ? 'selected-cell-highlight' : ''}"><span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span></td>
-            <td onclick="filterCell('pack', '${escapedPackName}', 'FC')" style="cursor: pointer;" class="${isCellSelected('pack', packName, 'FC') ? 'selected-cell-highlight' : ''}"><span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span></td>
-            <td onclick="filterCell('pack', '${escapedPackName}', 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('pack', packName, 'CLEAR') ? 'selected-cell-highlight' : ''}"><span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span></td>
+            <td onclick="filterCell(event, 'pack', '${escapedPackName}', null)" style="font-weight: bold; color: #333; cursor: pointer; text-decoration: underline;" title="${packName} 전체 필터링">${packName}</td>
+            <td onclick="filterCell(event, 'pack', '${escapedPackName}', 'AP+')" oncontextmenu="filterCell(event, 'pack', '${escapedPackName}', 'AP+')" style="cursor: pointer;" class="${isCellSelected('pack', packName, 'AP+')}"><span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span></td>
+            <td onclick="filterCell(event, 'pack', '${escapedPackName}', 'AP')" oncontextmenu="filterCell(event, 'pack', '${escapedPackName}', 'AP')" style="cursor: pointer;" class="${isCellSelected('pack', packName, 'AP')}"><span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span></td>
+            <td onclick="filterCell(event, 'pack', '${escapedPackName}', 'FC')" oncontextmenu="filterCell(event, 'pack', '${escapedPackName}', 'FC')" style="cursor: pointer;" class="${isCellSelected('pack', packName, 'FC')}"><span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span></td>
+            <td onclick="filterCell(event, 'pack', '${escapedPackName}', 'CLEAR')" oncontextmenu="filterCell(event, 'pack', '${escapedPackName}', 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('pack', packName, 'CLEAR')}"><span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span></td>
         `;
         packBody.appendChild(tr);
     });
 
-    // TOTAL 행
     const totalTr = document.createElement('tr');
     totalTr.className = 'total-row';
 
     totalTr.innerHTML = `
-        <td onclick="filterCell('pack', null, null)" style="cursor: pointer; text-decoration: underline;" title="전체 목록 보기">TOTAL</td>
-        <td onclick="filterCell('pack', null, 'AP+')" style="cursor: pointer;" class="${isCellSelected('pack', null, 'AP+') ? 'selected-cell-highlight' : ''}"><span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span></td>
-        <td onclick="filterCell('pack', null, 'AP')" style="cursor: pointer;" class="${isCellSelected('pack', null, 'AP') ? 'selected-cell-highlight' : ''}"><span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span></td>
-        <td onclick="filterCell('pack', null, 'FC')" style="cursor: pointer;" class="${isCellSelected('pack', null, 'FC') ? 'selected-cell-highlight' : ''}"><span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span></td>
-        <td onclick="filterCell('pack', null, 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('pack', null, 'CLEAR') ? 'selected-cell-highlight' : ''}"><span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span></td>
+        <td onclick="filterCell(event, 'pack', null, null)" style="cursor: pointer; text-decoration: underline;" title="전체 목록 보기">TOTAL</td>
+        <td onclick="filterCell(event, 'pack', null, 'AP+')" oncontextmenu="filterCell(event, 'pack', null, 'AP+')" style="cursor: pointer;" class="${isCellSelected('pack', null, 'AP+')}"><span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span></td>
+        <td onclick="filterCell(event, 'pack', null, 'AP')" oncontextmenu="filterCell(event, 'pack', null, 'AP')" style="cursor: pointer;" class="${isCellSelected('pack', null, 'AP')}"><span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span></td>
+        <td onclick="filterCell(event, 'pack', null, 'FC')" oncontextmenu="filterCell(event, 'pack', null, 'FC')" style="cursor: pointer;" class="${isCellSelected('pack', null, 'FC')}"><span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span></td>
+        <td onclick="filterCell(event, 'pack', null, 'CLEAR')" oncontextmenu="filterCell(event, 'pack', null, 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('pack', null, 'CLEAR')}"><span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span></td>
     `;
     packBody.appendChild(totalTr);
 }
 
-// 페이지 로드 시 기존에 설정한 테마 불러오기
+// 다크모드 관리
 document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('theme');
     const toggleBtn = document.getElementById('themeToggleBtn');
@@ -767,7 +786,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 다크모드 토글 함수
 function toggleDarkMode() {
     const isDark = document.body.classList.toggle('dark-mode');
     const toggleBtn = document.getElementById('themeToggleBtn');
