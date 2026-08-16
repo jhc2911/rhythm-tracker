@@ -5,8 +5,9 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let fetchedData = [];          // 유저의 플레이 기록 (records 테이블)
 let allSongsList = [];         // 전체 곡 목록 (songs 테이블)
-let selectedLevelFilter = null; // 🎯 레벨 필터 상태 (null이면 전체 출력)
-let selectedPackFilter = null;  // 📦 앨범 필터 상태 (null이면 전체 출력)
+let selectedLevelFilter = null; // 🎯 레벨 필터 상태
+let selectedPackFilter = null;  // 📦 앨범 필터 상태
+let selectedDiffFilter = null;  // 🎯 난이도 필터 상태 ('CASUAL', 'NORMAL', 'HARD', 'EXPERT', null)
 let selectedStatusFilter = null; // 🏆 클리어 상태 필터 ('AP+', 'AP', 'FC', 'CLEAR', 'ALL', null)
 let isNegativeFilter = false;   // 🚨 false: 달성한 곡 / true: 미달성(NOT) 곡 필터링
 
@@ -30,7 +31,7 @@ async function handleLogout() {
     window.location.href = 'login.html';
 }
 
-// 0. 전체 songs 데이터 로드 (드롭다운 및 전체 검색용)
+// 0. 전체 songs 데이터 로드
 async function loadAllSongs() {
     const { data, error } = await supabaseClient
         .from('songs')
@@ -86,6 +87,7 @@ async function loadRecords() {
     updateSortIcons();
     applyCurrentFilterAndRender(); // 필터 적용 후 테이블 출력
     renderStatsTable();     // 레벨별 통계 출력
+    renderDiffStatsTable(); // 🎯 난이도별 통계 출력
     renderPackStatsTable(); // 앨범별 통계 출력
 }
 
@@ -105,7 +107,7 @@ function applySort(column, ascending) {
     });
 }
 
-// 정렬 상태에 따라 표 헤더의 삼각형(▲/▼) 아이콘을 업데이트하는 함수
+// 정렬 상태 아이콘 업데이트
 function updateSortIcons() {
     document.querySelectorAll('.sort-icon').forEach(icon => icon.innerText = '↕');
     const currentIcon = document.getElementById(`icon-${currentSortColumn}`);
@@ -150,7 +152,7 @@ function getScoreHTML(score, status, totalNotes) {
     `;
 }
 
-// 📊 총점 및 평균 점수 요약 계산 및 렌더링 함수
+// 총점 및 평균 점수 요약 계산 및 렌더링
 function renderScoreSummary() {
     const totalScoreElem = document.getElementById('totalScoreText');
     const avgScoreElem = document.getElementById('avgScoreText');
@@ -159,7 +161,6 @@ function renderScoreSummary() {
     let grandTotalScore = 0;
     let totalNotesCount = 0;
 
-    // 1. 유저 플레이 기록 점수 합산
     fetchedData.forEach(item => {
         ['casual_score', 'normal_score', 'hard_score', 'expert_score'].forEach(key => {
             if (item[key] !== null && item[key] !== undefined) {
@@ -168,7 +169,6 @@ function renderScoreSummary() {
         });
     });
 
-    // 2. 전체 곡의 총 노트 수 계산 (songs 데이터 기준)
     allSongsList.forEach(song => {
         totalNotesCount += (song.casual_notes || 0) +
                            (song.normal_notes || 0) +
@@ -176,36 +176,28 @@ function renderScoreSummary() {
                            (song.expert_notes || 0);
     });
 
-    // 3. 전체 채보 수 = 전체 곡 수 * 4
     const totalChartCount = allSongsList.length * 4;
-    
-    // 기본 백분율 기준점수 (채보수 * 1,000,000점)
     const baseScore = totalChartCount * 1000000;
-
-    // 이론상 최대 만점 (기존 기준점수 + 총 노트 수)
     const maxTheoreticalScore = baseScore + totalNotesCount;
 
     let avgPercentageStr = '0.00%';
     let maxPercentageStr = '100.00%';
 
     if (baseScore > 0) {
-        // 달성 평균 백분율 계산
         const rawAvgPct = (grandTotalScore / baseScore) * 100;
         const roundedAvgPct = (Math.ceil(rawAvgPct * 100) / 100).toFixed(2);
         avgPercentageStr = `${roundedAvgPct}%`;
 
-        // 이론상 만점 백분율 계산
         const rawMaxPct = (maxTheoreticalScore / baseScore) * 100;
         const roundedMaxPct = (Math.ceil(rawMaxPct * 100) / 100).toFixed(2);
         maxPercentageStr = `${roundedMaxPct}%`;
     }
 
-    // 4. 화면 UI 업데이트
     totalScoreElem.innerText = `${grandTotalScore.toLocaleString()} / ${maxTheoreticalScore.toLocaleString()}`;
     avgScoreElem.innerText = `${avgPercentageStr} / ${maxPercentageStr}`;
 }
 
-// 🎯 클리어 상태 조건 판별 헬퍼 함수 (미달성 필터 지원)
+// 🎯 클리어 상태 조건 판별 헬퍼 함수
 function isStatusMatched(status, requiredStatus, isNegative = false) {
     if (!requiredStatus || requiredStatus === 'ALL') return true;
 
@@ -221,7 +213,6 @@ function isStatusMatched(status, requiredStatus, isNegative = false) {
         isMatch = (status && status !== 'NONE' && status !== 'FAILED');
     }
 
-    // 미달성(NOT) 필터 모드일 경우 반대 조건 반환
     return isNegative ? !isMatch : isMatch;
 }
 
@@ -265,8 +256,24 @@ function applyCurrentFilterAndRender() {
         });
     }
 
-    // 3. 레벨/앨범 지정 없이 전체(TOTAL) 행에서 특정 클리어 상태 클릭 시
-    if (selectedLevelFilter === null && selectedPackFilter === null && selectedStatusFilter) {
+    // 3. 난이도 & 클리어 상태 교차 필터링
+    if (selectedDiffFilter !== null) {
+        const diffKeyMap = {
+            'CASUAL': 'casual_status',
+            'NORMAL': 'normal_status',
+            'HARD': 'hard_status',
+            'EXPERT': 'expert_status'
+        };
+        const statusKey = diffKeyMap[selectedDiffFilter];
+
+        displayList = displayList.filter(item => {
+            if (!statusKey) return false;
+            return isStatusMatched(item[statusKey], selectedStatusFilter, isNegativeFilter);
+        });
+    }
+
+    // 4. 단독 TOTAL 행 클리어 상태 필터링
+    if (selectedLevelFilter === null && selectedPackFilter === null && selectedDiffFilter === null && selectedStatusFilter) {
         displayList = displayList.filter(item => {
             const statuses = [item.casual_status, item.normal_status, item.hard_status, item.expert_status];
             return statuses.some(st => isStatusMatched(st, selectedStatusFilter, isNegativeFilter));
@@ -276,40 +283,35 @@ function applyCurrentFilterAndRender() {
     renderTable(displayList);
 }
 
-// 🎯 통합 셀 필터링 제어 함수 (좌클릭 = 달성, 우클릭 / Shift+클릭 = 미달성)
+// 🎯 통합 셀 필터링 제어 함수
 function filterCell(e, type, categoryValue, statusType) {
-    if (e) {
-        if (e.type === 'contextmenu') {
-            e.preventDefault(); // 우클릭 메뉴 차단
-        }
+    if (e && e.type === 'contextmenu') {
+        e.preventDefault();
     }
 
-    // 우클릭(button === 2) 또는 Shift/Alt 키 누른 채 클릭 시 미달성(NOT) 조건 적용
     const wantNegative = (e && (e.button === 2 || e.shiftKey || e.altKey));
 
     const isSameLevel = (type === 'level' && selectedLevelFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
     const isSamePack = (type === 'pack' && selectedPackFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
+    const isSameDiff = (type === 'diff' && selectedDiffFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
 
-    if (isSameLevel || isSamePack) {
-        // 동일 셀/모드 재클릭 시 필터 해제
+    if (isSameLevel || isSamePack || isSameDiff) {
         selectedLevelFilter = null;
         selectedPackFilter = null;
+        selectedDiffFilter = null;
         selectedStatusFilter = null;
         isNegativeFilter = false;
     } else {
         selectedStatusFilter = statusType;
         isNegativeFilter = wantNegative;
 
-        if (type === 'level') {
-            selectedLevelFilter = categoryValue;
-            selectedPackFilter = null;
-        } else if (type === 'pack') {
-            selectedPackFilter = categoryValue;
-            selectedLevelFilter = null;
-        }
+        selectedLevelFilter = (type === 'level') ? categoryValue : null;
+        selectedPackFilter = (type === 'pack') ? categoryValue : null;
+        selectedDiffFilter = (type === 'diff') ? categoryValue : null;
     }
 
     renderStatsTable();
+    renderDiffStatsTable();
     renderPackStatsTable();
     applyCurrentFilterAndRender();
 
@@ -319,16 +321,10 @@ function filterCell(e, type, categoryValue, statusType) {
     }
 }
 
-// 하위 호환성 유지용 레벨/앨범 단독 필터 함수
-function filterByLevel(level) {
-    filterCell(null, 'level', level, null);
-}
+function filterByLevel(level) { filterCell(null, 'level', level, null); }
+function filterByPack(packName) { filterCell(null, 'pack', packName, null); }
 
-function filterByPack(packName) {
-    filterCell(null, 'pack', packName, null);
-}
-
-// 2. 테이블 렌더링
+// 2. 메인 레코드 테이블 렌더링
 function renderTable(dataList) {
     const tableBody = document.getElementById('tableBody');
     if (!tableBody) return;
@@ -393,7 +389,6 @@ function renderTable(dataList) {
     renderScoreSummary();
 }
 
-// ✨ 선택된 곡 기록 폼에 바인딩
 function loadExistingRecord(songId) {
     const record = fetchedData.find(item => item.song_id === songId);
     
@@ -458,9 +453,7 @@ function onSongIdInput() {
     }
 }
 
-function showSongDropdown() {
-    filterSongDropdown();
-}
+function showSongDropdown() { filterSongDropdown(); }
 
 function filterSongDropdown() {
     const titleInput = document.getElementById('songTitleInput');
@@ -669,6 +662,92 @@ function renderStatsTable() {
     if (statsSummary) {
         statsSummary.innerHTML = `총 <strong>${songCount}</strong>곡 (<strong>${chartCount}</strong>개 채보)`;
     }
+}
+
+// 🎯 [신규] 난이도별 통계 계산 및 렌더링 함수 (CASUAL, NORMAL, HARD, EXPERT)
+function renderDiffStatsTable() {
+    const diffBody = document.getElementById('diffStatsTableBody');
+    if (!diffBody) return;
+    diffBody.innerHTML = '';
+
+    const diffNames = ['CASUAL', 'NORMAL', 'HARD', 'EXPERT'];
+    const diffStats = {
+        'CASUAL': { total: 0, applus: 0, ap: 0, fc: 0, clear: 0 },
+        'NORMAL': { total: 0, applus: 0, ap: 0, fc: 0, clear: 0 },
+        'HARD':   { total: 0, applus: 0, ap: 0, fc: 0, clear: 0 },
+        'EXPERT': { total: 0, applus: 0, ap: 0, fc: 0, clear: 0 }
+    };
+
+    const totalStats = { total: 0, applus: 0, ap: 0, fc: 0, clear: 0 };
+
+    fetchedData.forEach(item => {
+        const diffs = [
+            { key: 'CASUAL', score: item.casual_score, status: item.casual_status },
+            { key: 'NORMAL', score: item.normal_score, status: item.normal_status },
+            { key: 'HARD',   score: item.hard_score,   status: item.hard_status },
+            { key: 'EXPERT', score: item.expert_score, status: item.expert_status }
+        ];
+
+        diffs.forEach(d => {
+            if (d.score !== null && d.score !== undefined) {
+                const target = diffStats[d.key];
+                target.total += 1;
+                totalStats.total += 1;
+
+                if (d.status === 'AP+') {
+                    target.applus += 1; target.ap += 1; target.fc += 1; target.clear += 1;
+                    totalStats.applus += 1; totalStats.ap += 1; totalStats.fc += 1; totalStats.clear += 1;
+                } else if (d.status === 'AP') {
+                    target.ap += 1; target.fc += 1; target.clear += 1;
+                    totalStats.ap += 1; totalStats.fc += 1; totalStats.clear += 1;
+                } else if (d.status === 'FC') {
+                    target.fc += 1; target.clear += 1;
+                    totalStats.fc += 1; totalStats.clear += 1;
+                } else {
+                    target.clear += 1;
+                    totalStats.clear += 1;
+                }
+            }
+        });
+    });
+
+    const getRateStr = (count, total) => {
+        if (total === 0) return '(0.0%)';
+        return `(${(count / total * 100).toFixed(1)}%)`;
+    };
+
+    const isCellSelected = (type, val, status) => {
+        if (type === 'diff' && selectedDiffFilter === val && selectedStatusFilter === status) {
+            return isNegativeFilter ? 'selected-cell-negative' : 'selected-cell-highlight';
+        }
+        return '';
+    };
+
+    diffNames.forEach(diffName => {
+        const row = diffStats[diffName];
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+            <td onclick="filterCell(event, 'diff', '${diffName}', null)" style="font-weight: bold; color: #333; cursor: pointer; text-decoration: underline;" title="${diffName} 전체 필터링">${diffName}</td>
+            <td onclick="filterCell(event, 'diff', '${diffName}', 'AP+')" oncontextmenu="filterCell(event, 'diff', '${diffName}', 'AP+')" style="cursor: pointer;" class="${isCellSelected('diff', diffName, 'AP+')}"><span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span></td>
+            <td onclick="filterCell(event, 'diff', '${diffName}', 'AP')" oncontextmenu="filterCell(event, 'diff', '${diffName}', 'AP')" style="cursor: pointer;" class="${isCellSelected('diff', diffName, 'AP')}"><span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span></td>
+            <td onclick="filterCell(event, 'diff', '${diffName}', 'FC')" oncontextmenu="filterCell(event, 'diff', '${diffName}', 'FC')" style="cursor: pointer;" class="${isCellSelected('diff', diffName, 'FC')}"><span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span></td>
+            <td onclick="filterCell(event, 'diff', '${diffName}', 'CLEAR')" oncontextmenu="filterCell(event, 'diff', '${diffName}', 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('diff', diffName, 'CLEAR')}"><span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span></td>
+        `;
+        diffBody.appendChild(tr);
+    });
+
+    const totalTr = document.createElement('tr');
+    totalTr.className = 'total-row';
+
+    totalTr.innerHTML = `
+        <td onclick="filterCell(event, 'diff', null, null)" style="cursor: pointer; text-decoration: underline;" title="전체 목록 보기">TOTAL</td>
+        <td onclick="filterCell(event, 'diff', null, 'AP+')" oncontextmenu="filterCell(event, 'diff', null, 'AP+')" style="cursor: pointer;" class="${isCellSelected('diff', null, 'AP+')}"><span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span></td>
+        <td onclick="filterCell(event, 'diff', null, 'AP')" oncontextmenu="filterCell(event, 'diff', null, 'AP')" style="cursor: pointer;" class="${isCellSelected('diff', null, 'AP')}"><span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span></td>
+        <td onclick="filterCell(event, 'diff', null, 'FC')" oncontextmenu="filterCell(event, 'diff', null, 'FC')" style="cursor: pointer;" class="${isCellSelected('diff', null, 'FC')}"><span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span></td>
+        <td onclick="filterCell(event, 'diff', null, 'CLEAR')" oncontextmenu="filterCell(event, 'diff', null, 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('diff', null, 'CLEAR')}"><span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span></td>
+    `;
+    diffBody.appendChild(totalTr);
 }
 
 // 📦 앨범별 통계 계산 및 렌더링 함수
