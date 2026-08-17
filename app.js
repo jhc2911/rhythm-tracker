@@ -283,20 +283,13 @@ function applyCurrentFilterAndRender() {
     renderTable(displayList);
 }
 
-// 📜 화면 스크롤 헬퍼 함수
-function scrollToSummary() {
-    const summaryElem = document.getElementById('scoreSummaryContainer') || document.getElementById('tableBody');
-    if (summaryElem) {
-        summaryElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-}
-
-// 📱 🎯 [수정] 통합 셀 필터링 제어 함수 (스크롤 로직 분리 완료)
+// 📱 🎯 [수정] 통합 셀 필터링 제어 함수 (PC 우클릭 + 모바일 롱 프레스 지원)
 function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
     if (e && e.cancelable && e.type === 'contextmenu') {
         e.preventDefault();
     }
 
+    // 롱 프레스 등으로 forceNegative가 전달되면 우선 적용, 아닐 경우 PC 마우스/키 조합 판별
     let wantNegative = false;
     if (forceNegative !== null) {
         wantNegative = forceNegative;
@@ -327,57 +320,37 @@ function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
     renderDiffStatsTable();
     renderPackStatsTable();
     applyCurrentFilterAndRender();
+
+    const summaryElem = document.getElementById('scoreSummaryContainer') || document.getElementById('tableBody');
+    if (summaryElem) {
+        summaryElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
-// 📱 모바일 롱 프레스(길게 누르기) 및 터치 잔상 방지 바인딩 헬퍼 함수 (수정 완료)
+// 📱 [신규] 모바일 롱 프레스(길게 누르기) 이벤트 바인딩 헬퍼 함수
 function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
     let touchTimer = null;
     let isLongPress = false;
-    let pendingFilterArgs = null; // 롱 프레스 실행 예약 데이터
 
+    // 모바일 터치 시작 (0.5초 누르면 미달성 필터 동작)
     element.addEventListener('touchstart', (e) => {
         isLongPress = false;
-        pendingFilterArgs = null;
-
         touchTimer = setTimeout(() => {
             isLongPress = true;
-            // 500ms 도달 시 실행할 매개변수만 저장하고 위치는 절대 이동하지 않음
-            pendingFilterArgs = [e, type, categoryValue, statusType, true];
+            filterCell(e, type, categoryValue, statusType, true); // forceNegative = true
         }, 500);
     }, { passive: true });
 
+    // 손가락을 떼거나 드래그 이동 시 타이머 취소
     element.addEventListener('touchend', (e) => {
-        if (touchTimer) {
-            clearTimeout(touchTimer);
-            touchTimer = null;
-        }
-
-        // 🖐️ 손가락을 완전히 뗀 '바로 이 순간'에 필터링 및 스크롤 실행
-        if (isLongPress && pendingFilterArgs) {
-            if (e.cancelable) e.preventDefault();
-            e.stopPropagation();
-
-            filterCell(...pendingFilterArgs);
-            pendingFilterArgs = null;
-
-            // 손가락을 뗀 후 안전하게 스크롤 이동
-            scrollToSummary();
-
-            setTimeout(() => {
-                isLongPress = false;
-            }, 300);
-        }
-    }, { passive: false });
+        if (touchTimer) clearTimeout(touchTimer);
+    });
 
     element.addEventListener('touchmove', () => {
-        if (touchTimer) {
-            clearTimeout(touchTimer);
-            touchTimer = null;
-        }
-        pendingFilterArgs = null;
-        isLongPress = false;
-    }, { passive: true });
+        if (touchTimer) clearTimeout(touchTimer);
+    });
 
+    // 일반 클릭 이벤트 (롱 프레스가 발생한 경우는 클릭 동작 방지)
     element.addEventListener('click', (e) => {
         if (isLongPress) {
             e.preventDefault();
@@ -385,18 +358,17 @@ function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
             return;
         }
         filterCell(e, type, categoryValue, statusType, false);
-        scrollToSummary(); // 짧은 클릭 시에도 스크롤 이동
     });
 
+    // PC 마우스 우클릭 (contextmenu)
     element.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         filterCell(e, type, categoryValue, statusType, true);
-        scrollToSummary();
     });
 }
 
-function filterByLevel(level) { filterCell(null, 'level', level, null); scrollToSummary(); }
-function filterByPack(packName) { filterCell(null, 'pack', packName, null); scrollToSummary(); }
+function filterByLevel(level) { filterCell(null, 'level', level, null); }
+function filterByPack(packName) { filterCell(null, 'pack', packName, null); }
 
 // 2. 메인 레코드 테이블 렌더링
 function renderTable(dataList) {
@@ -643,7 +615,7 @@ async function saveRecord() {
     }
 }
 
-// 📊 레벨 1~19 통계 계산 및 렌더링 함수
+// 📊 [수정] 레벨 1~19 통계 계산 및 렌더링 함수 (터치/롱프레스 지원)
 function renderStatsTable() {
     const statsBody = document.getElementById('statsTableBody');
     if (!statsBody) return;
@@ -763,7 +735,7 @@ function renderStatsTable() {
     }
 }
 
-// 🎯 난이도별 통계 계산 및 렌더링 함수
+// 🎯 [수정] 난이도별 통계 계산 및 렌더링 함수
 function renderDiffStatsTable() {
     const diffBody = document.getElementById('diffStatsTableBody');
     if (!diffBody) return;
@@ -858,13 +830,13 @@ function renderDiffStatsTable() {
     totalTr.appendChild(tdTotalLabel);
     totalTr.appendChild(createTd('diff', null, 'AP+', `<span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span>`, isCellSelected('diff', null, 'AP+')));
     totalTr.appendChild(createTd('diff', null, 'AP', `<span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span>`, isCellSelected('diff', null, 'AP')));
-    totalTr.appendChild(createTotalTd('diff', null, 'FC', `<span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span>`, isCellSelected('diff', null, 'FC')));
+    totalTr.appendChild(createTd('diff', null, 'FC', `<span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span>`, isCellSelected('diff', null, 'FC')));
     totalTr.appendChild(createTd('diff', null, 'CLEAR', `<span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span>`, isCellSelected('diff', null, 'CLEAR')));
 
     diffBody.appendChild(totalTr);
 }
 
-// 📦 앨범별 통계 계산 및 렌더링 함수
+// 📦 [수정] 앨범별 통계 계산 및 렌더링 함수
 function renderPackStatsTable() {
     const packBody = document.getElementById('packStatsTableBody');
     if (!packBody) return;
