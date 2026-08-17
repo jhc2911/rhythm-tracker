@@ -3,6 +3,11 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const SUPABASE_URL = 'https://qpcczmuwydpwpwpskoej.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2N6bXV3eWRwd3B3cHNrb2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NDgzNDEsImV4cCI6MjEwMDEyNDM0MX0.qje22MHokVuAXwrISej1KDrhFbFZFYgluzYwwdoO82I';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 let fetchedData = [];          // 유저의 플레이 기록 (records 테이블)
 let allSongsList = [];         // 전체 곡 목록 (songs 테이블)
 let selectedLevelFilter = null; // 🎯 레벨 필터 상태
@@ -329,43 +334,36 @@ function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
     applyCurrentFilterAndRender();
 }
 
-// 📱 모바일 롱 프레스(길게 누르기) 및 터치 잔상 방지 바인딩 헬퍼 함수
+// 📱 모바일 롱 프레스(길게 누르기) 및 터치 잔상 방지 바인딩 헬퍼 함수 (수정완료)
 function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
     let touchTimer = null;
     let isLongPress = false;
-    let pendingFilterArgs = null; // 롱 프레스 실행 예약 데이터
 
     element.addEventListener('touchstart', (e) => {
         isLongPress = false;
-        pendingFilterArgs = null;
 
-        // 500ms 후 롱 프레스 상태로 판정만 하고, 스크롤/필터링은 절대 실행하지 않음
+        // 500ms 동안 누르고 있으면 롱 프레스 상태로만 변경
         touchTimer = setTimeout(() => {
             isLongPress = true;
-            pendingFilterArgs = [e, type, categoryValue, statusType, true];
         }, 500);
     }, { passive: true });
 
     element.addEventListener('touchend', (e) => {
-        // 타이머 취소
         if (touchTimer) {
             clearTimeout(touchTimer);
             touchTimer = null;
         }
 
-        // 🖐️ 손가락을 완전히 뗀 바로 이 순간(touchend)에만 필터링과 스크롤 실행
-        if (isLongPress && pendingFilterArgs) {
+        // 🖐️ 손가락을 완전히 뗀 시점(touchend)에 동작 실행
+        if (isLongPress) {
             if (e.cancelable) e.preventDefault();
             e.stopPropagation();
 
-            // 1. 필터 적용
-            filterCell(...pendingFilterArgs);
-            pendingFilterArgs = null;
-
-            // 2. 손가락을 뗀 후 안전하게 스크롤 이동
+            // 롱 프레스: e(이벤트) 대신 null을 전달하고 forceNegative를 true로 명시
+            filterCell(null, type, categoryValue, statusType, true);
             scrollToSummary();
 
-            // 후속 click 이벤트 오작동 방지 플래그 리셋
+            // touchend 직후 발생하는 click 이벤트 방지용
             setTimeout(() => {
                 isLongPress = false;
             }, 300);
@@ -373,29 +371,28 @@ function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
     }, { passive: false });
 
     element.addEventListener('touchmove', () => {
-        // 터치 상태에서 손가락을 움직이면(스크롤 시도 등) 롱 프레스 취소
+        // 손가락을 움직이면(스크롤 등) 롱 프레스 타이머 취소
         if (touchTimer) {
             clearTimeout(touchTimer);
             touchTimer = null;
         }
-        pendingFilterArgs = null;
         isLongPress = false;
     }, { passive: true });
 
     element.addEventListener('click', (e) => {
-        // 롱 프레스 이벤트가 처리된 경우 click 동작 차단
+        // 롱 프레스 처리 후 들어오는 잔상 click 방지
         if (isLongPress) {
             e.preventDefault();
             e.stopPropagation();
             return;
         }
-        // 일반 짧은 터치/클릭
+        // 일반 클릭 / 짧은 터치
         filterCell(e, type, categoryValue, statusType, false);
         scrollToSummary();
     });
 
     element.addEventListener('contextmenu', (e) => {
-        // 마우스 우클릭 대응
+        // PC 우클릭
         e.preventDefault();
         filterCell(e, type, categoryValue, statusType, true);
         scrollToSummary();
