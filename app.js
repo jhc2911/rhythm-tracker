@@ -283,13 +283,19 @@ function applyCurrentFilterAndRender() {
     renderTable(displayList);
 }
 
-// 🎯 통합 셀 필터링 제어 함수
-function filterCell(e, type, categoryValue, statusType) {
-    if (e && e.type === 'contextmenu') {
+// 📱 🎯 [수정] 통합 셀 필터링 제어 함수 (PC 우클릭 + 모바일 롱 프레스 지원)
+function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
+    if (e && e.cancelable && e.type === 'contextmenu') {
         e.preventDefault();
     }
 
-    const wantNegative = (e && (e.button === 2 || e.shiftKey || e.altKey));
+    // 롱 프레스 등으로 forceNegative가 전달되면 우선 적용, 아닐 경우 PC 마우스/키 조합 판별
+    let wantNegative = false;
+    if (forceNegative !== null) {
+        wantNegative = forceNegative;
+    } else if (e) {
+        wantNegative = (e.button === 2 || e.shiftKey || e.altKey);
+    }
 
     const isSameLevel = (type === 'level' && selectedLevelFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
     const isSamePack = (type === 'pack' && selectedPackFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
@@ -319,6 +325,46 @@ function filterCell(e, type, categoryValue, statusType) {
     if (summaryElem) {
         summaryElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+}
+
+// 📱 [신규] 모바일 롱 프레스(길게 누르기) 이벤트 바인딩 헬퍼 함수
+function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
+    let touchTimer = null;
+    let isLongPress = false;
+
+    // 모바일 터치 시작 (0.5초 누르면 미달성 필터 동작)
+    element.addEventListener('touchstart', (e) => {
+        isLongPress = false;
+        touchTimer = setTimeout(() => {
+            isLongPress = true;
+            filterCell(e, type, categoryValue, statusType, true); // forceNegative = true
+        }, 500);
+    }, { passive: true });
+
+    // 손가락을 떼거나 드래그 이동 시 타이머 취소
+    element.addEventListener('touchend', (e) => {
+        if (touchTimer) clearTimeout(touchTimer);
+    });
+
+    element.addEventListener('touchmove', () => {
+        if (touchTimer) clearTimeout(touchTimer);
+    });
+
+    // 일반 클릭 이벤트 (롱 프레스가 발생한 경우는 클릭 동작 방지)
+    element.addEventListener('click', (e) => {
+        if (isLongPress) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+        filterCell(e, type, categoryValue, statusType, false);
+    });
+
+    // PC 마우스 우클릭 (contextmenu)
+    element.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        filterCell(e, type, categoryValue, statusType, true);
+    });
 }
 
 function filterByLevel(level) { filterCell(null, 'level', level, null); }
@@ -569,7 +615,7 @@ async function saveRecord() {
     }
 }
 
-// 📊 레벨 1~19 통계 계산 및 렌더링 함수
+// 📊 [수정] 레벨 1~19 통계 계산 및 렌더링 함수 (터치/롱프레스 지원)
 function renderStatsTable() {
     const statsBody = document.getElementById('statsTableBody');
     if (!statsBody) return;
@@ -632,27 +678,52 @@ function renderStatsTable() {
         const tr = document.createElement('tr');
         tr.id = `stats-row-lv-${lv}`;
 
-        tr.innerHTML = `
-            <td onclick="filterCell(event, 'level', ${lv}, null)" style="font-weight: bold; color: #333; cursor: pointer; text-decoration: underline;" title="Level ${lv} 전체 필터링">Level ${lv}</td>
-            <td onclick="filterCell(event, 'level', ${lv}, 'AP+')" oncontextmenu="filterCell(event, 'level', ${lv}, 'AP+')" style="cursor: pointer;" class="${isCellSelected('level', lv, 'AP+')}"><span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span></td>
-            <td onclick="filterCell(event, 'level', ${lv}, 'AP')" oncontextmenu="filterCell(event, 'level', ${lv}, 'AP')" style="cursor: pointer;" class="${isCellSelected('level', lv, 'AP')}"><span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span></td>
-            <td onclick="filterCell(event, 'level', ${lv}, 'FC')" oncontextmenu="filterCell(event, 'level', ${lv}, 'FC')" style="cursor: pointer;" class="${isCellSelected('level', lv, 'FC')}"><span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span></td>
-            <td onclick="filterCell(event, 'level', ${lv}, 'CLEAR')" oncontextmenu="filterCell(event, 'level', ${lv}, 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('level', lv, 'CLEAR')}"><span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span></td>
-        `;
+        const createTd = (type, categoryVal, statusType, contentHtml, extraClass = '') => {
+            const td = document.createElement('td');
+            td.style.cursor = 'pointer';
+            if (extraClass) td.className = extraClass;
+            td.innerHTML = contentHtml;
+            attachTouchAndClickEvents(td, type, categoryVal, statusType);
+            return td;
+        };
+
+        const tdLabel = createTd('level', lv, null, `Level ${lv}`);
+        tdLabel.style.fontWeight = 'bold';
+        tdLabel.style.color = '#333';
+        tdLabel.style.textDecoration = 'underline';
+
+        tr.appendChild(tdLabel);
+        tr.appendChild(createTd('level', lv, 'AP+', `<span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span>`, isCellSelected('level', lv, 'AP+')));
+        tr.appendChild(createTd('level', lv, 'AP', `<span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span>`, isCellSelected('level', lv, 'AP')));
+        tr.appendChild(createTd('level', lv, 'FC', `<span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span>`, isCellSelected('level', lv, 'FC')));
+        tr.appendChild(createTd('level', lv, 'CLEAR', `<span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span>`, isCellSelected('level', lv, 'CLEAR')));
+
         statsBody.appendChild(tr);
     }
 
+    // TOTAL 행 생성
     const totalTr = document.createElement('tr');
     totalTr.id = 'stats-row-total';
     totalTr.className = 'total-row';
 
-    totalTr.innerHTML = `
-        <td onclick="filterCell(event, 'level', null, null)" style="cursor: pointer; text-decoration: underline;" title="전체 목록 보기">TOTAL</td>
-        <td onclick="filterCell(event, 'level', null, 'AP+')" oncontextmenu="filterCell(event, 'level', null, 'AP+')" style="cursor: pointer;" class="${isCellSelected('level', null, 'AP+')}"><span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span></td>
-        <td onclick="filterCell(event, 'level', null, 'AP')" oncontextmenu="filterCell(event, 'level', null, 'AP')" style="cursor: pointer;" class="${isCellSelected('level', null, 'AP')}"><span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span></td>
-        <td onclick="filterCell(event, 'level', null, 'FC')" oncontextmenu="filterCell(event, 'level', null, 'FC')" style="cursor: pointer;" class="${isCellSelected('level', null, 'FC')}"><span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span></td>
-        <td onclick="filterCell(event, 'level', null, 'CLEAR')" oncontextmenu="filterCell(event, 'level', null, 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('level', null, 'CLEAR')}"><span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span></td>
-    `;
+    const createTotalTd = (type, statusType, contentHtml, extraClass = '') => {
+        const td = document.createElement('td');
+        td.style.cursor = 'pointer';
+        if (extraClass) td.className = extraClass;
+        td.innerHTML = contentHtml;
+        attachTouchAndClickEvents(td, type, null, statusType);
+        return td;
+    };
+
+    const tdTotalLabel = createTotalTd('level', null, 'TOTAL');
+    tdTotalLabel.style.textDecoration = 'underline';
+
+    totalTr.appendChild(tdTotalLabel);
+    totalTr.appendChild(createTotalTd('level', 'AP+', `<span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span>`, isCellSelected('level', null, 'AP+')));
+    totalTr.appendChild(createTotalTd('level', 'AP', `<span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span>`, isCellSelected('level', null, 'AP')));
+    totalTr.appendChild(createTotalTd('level', 'FC', `<span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span>`, isCellSelected('level', null, 'FC')));
+    totalTr.appendChild(createTotalTd('level', 'CLEAR', `<span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span>`, isCellSelected('level', null, 'CLEAR')));
+
     statsBody.appendChild(totalTr);
 
     const songCount = allSongsList.length;
@@ -664,7 +735,7 @@ function renderStatsTable() {
     }
 }
 
-// 🎯 [신규] 난이도별 통계 계산 및 렌더링 함수 (CASUAL, NORMAL, HARD, EXPERT)
+// 🎯 [수정] 난이도별 통계 계산 및 렌더링 함수
 function renderDiffStatsTable() {
     const diffBody = document.getElementById('diffStatsTableBody');
     if (!diffBody) return;
@@ -723,34 +794,49 @@ function renderDiffStatsTable() {
         return '';
     };
 
+    const createTd = (type, categoryVal, statusType, contentHtml, extraClass = '') => {
+        const td = document.createElement('td');
+        td.style.cursor = 'pointer';
+        if (extraClass) td.className = extraClass;
+        td.innerHTML = contentHtml;
+        attachTouchAndClickEvents(td, type, categoryVal, statusType);
+        return td;
+    };
+
     diffNames.forEach(diffName => {
         const row = diffStats[diffName];
         const tr = document.createElement('tr');
 
-        tr.innerHTML = `
-            <td onclick="filterCell(event, 'diff', '${diffName}', null)" style="font-weight: bold; color: #333; cursor: pointer; text-decoration: underline;" title="${diffName} 전체 필터링">${diffName}</td>
-            <td onclick="filterCell(event, 'diff', '${diffName}', 'AP+')" oncontextmenu="filterCell(event, 'diff', '${diffName}', 'AP+')" style="cursor: pointer;" class="${isCellSelected('diff', diffName, 'AP+')}"><span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span></td>
-            <td onclick="filterCell(event, 'diff', '${diffName}', 'AP')" oncontextmenu="filterCell(event, 'diff', '${diffName}', 'AP')" style="cursor: pointer;" class="${isCellSelected('diff', diffName, 'AP')}"><span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span></td>
-            <td onclick="filterCell(event, 'diff', '${diffName}', 'FC')" oncontextmenu="filterCell(event, 'diff', '${diffName}', 'FC')" style="cursor: pointer;" class="${isCellSelected('diff', diffName, 'FC')}"><span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span></td>
-            <td onclick="filterCell(event, 'diff', '${diffName}', 'CLEAR')" oncontextmenu="filterCell(event, 'diff', '${diffName}', 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('diff', diffName, 'CLEAR')}"><span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span></td>
-        `;
+        const tdLabel = createTd('diff', diffName, null, diffName);
+        tdLabel.style.fontWeight = 'bold';
+        tdLabel.style.color = '#333';
+        tdLabel.style.textDecoration = 'underline';
+
+        tr.appendChild(tdLabel);
+        tr.appendChild(createTd('diff', diffName, 'AP+', `<span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span>`, isCellSelected('diff', diffName, 'AP+')));
+        tr.appendChild(createTd('diff', diffName, 'AP', `<span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span>`, isCellSelected('diff', diffName, 'AP')));
+        tr.appendChild(createTd('diff', diffName, 'FC', `<span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span>`, isCellSelected('diff', diffName, 'FC')));
+        tr.appendChild(createTd('diff', diffName, 'CLEAR', `<span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span>`, isCellSelected('diff', diffName, 'CLEAR')));
+
         diffBody.appendChild(tr);
     });
 
     const totalTr = document.createElement('tr');
     totalTr.className = 'total-row';
 
-    totalTr.innerHTML = `
-        <td onclick="filterCell(event, 'diff', null, null)" style="cursor: pointer; text-decoration: underline;" title="전체 목록 보기">TOTAL</td>
-        <td onclick="filterCell(event, 'diff', null, 'AP+')" oncontextmenu="filterCell(event, 'diff', null, 'AP+')" style="cursor: pointer;" class="${isCellSelected('diff', null, 'AP+')}"><span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span></td>
-        <td onclick="filterCell(event, 'diff', null, 'AP')" oncontextmenu="filterCell(event, 'diff', null, 'AP')" style="cursor: pointer;" class="${isCellSelected('diff', null, 'AP')}"><span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span></td>
-        <td onclick="filterCell(event, 'diff', null, 'FC')" oncontextmenu="filterCell(event, 'diff', null, 'FC')" style="cursor: pointer;" class="${isCellSelected('diff', null, 'FC')}"><span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span></td>
-        <td onclick="filterCell(event, 'diff', null, 'CLEAR')" oncontextmenu="filterCell(event, 'diff', null, 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('diff', null, 'CLEAR')}"><span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span></td>
-    `;
+    const tdTotalLabel = createTd('diff', null, null, 'TOTAL');
+    tdTotalLabel.style.textDecoration = 'underline';
+
+    totalTr.appendChild(tdTotalLabel);
+    totalTr.appendChild(createTd('diff', null, 'AP+', `<span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span>`, isCellSelected('diff', null, 'AP+')));
+    totalTr.appendChild(createTd('diff', null, 'AP', `<span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span>`, isCellSelected('diff', null, 'AP')));
+    totalTr.appendChild(createTd('diff', null, 'FC', `<span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span>`, isCellSelected('diff', null, 'FC')));
+    totalTr.appendChild(createTd('diff', null, 'CLEAR', `<span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span>`, isCellSelected('diff', null, 'CLEAR')));
+
     diffBody.appendChild(totalTr);
 }
 
-// 📦 앨범별 통계 계산 및 렌더링 함수
+// 📦 [수정] 앨범별 통계 계산 및 렌더링 함수
 function renderPackStatsTable() {
     const packBody = document.getElementById('packStatsTableBody');
     if (!packBody) return;
@@ -810,6 +896,15 @@ function renderPackStatsTable() {
         return '';
     };
 
+    const createTd = (type, categoryVal, statusType, contentHtml, extraClass = '') => {
+        const td = document.createElement('td');
+        td.style.cursor = 'pointer';
+        if (extraClass) td.className = extraClass;
+        td.innerHTML = contentHtml;
+        attachTouchAndClickEvents(td, type, categoryVal, statusType);
+        return td;
+    };
+
     const packOrder = [
         'TRACING THE STARS',
         'T.T.S. EXTENSION PACK V.1',
@@ -829,28 +924,33 @@ function renderPackStatsTable() {
     sortedPacks.forEach(packName => {
         const row = packStatsMap[packName];
         const tr = document.createElement('tr');
-        const escapedPackName = packName.replace(/'/g, "\\'");
 
-        tr.innerHTML = `
-            <td onclick="filterCell(event, 'pack', '${escapedPackName}', null)" style="font-weight: bold; color: #333; cursor: pointer; text-decoration: underline;" title="${packName} 전체 필터링">${packName}</td>
-            <td onclick="filterCell(event, 'pack', '${escapedPackName}', 'AP+')" oncontextmenu="filterCell(event, 'pack', '${escapedPackName}', 'AP+')" style="cursor: pointer;" class="${isCellSelected('pack', packName, 'AP+')}"><span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span></td>
-            <td onclick="filterCell(event, 'pack', '${escapedPackName}', 'AP')" oncontextmenu="filterCell(event, 'pack', '${escapedPackName}', 'AP')" style="cursor: pointer;" class="${isCellSelected('pack', packName, 'AP')}"><span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span></td>
-            <td onclick="filterCell(event, 'pack', '${escapedPackName}', 'FC')" oncontextmenu="filterCell(event, 'pack', '${escapedPackName}', 'FC')" style="cursor: pointer;" class="${isCellSelected('pack', packName, 'FC')}"><span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span></td>
-            <td onclick="filterCell(event, 'pack', '${escapedPackName}', 'CLEAR')" oncontextmenu="filterCell(event, 'pack', '${escapedPackName}', 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('pack', packName, 'CLEAR')}"><span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span></td>
-        `;
+        const tdLabel = createTd('pack', packName, null, packName);
+        tdLabel.style.fontWeight = 'bold';
+        tdLabel.style.color = '#333';
+        tdLabel.style.textDecoration = 'underline';
+
+        tr.appendChild(tdLabel);
+        tr.appendChild(createTd('pack', packName, 'AP+', `<span class="stats-count status-applus">${row.applus}</span><span class="stats-rate">${getRateStr(row.applus, row.total)}</span>`, isCellSelected('pack', packName, 'AP+')));
+        tr.appendChild(createTd('pack', packName, 'AP', `<span class="stats-count status-ap">${row.ap}</span><span class="stats-rate">${getRateStr(row.ap, row.total)}</span>`, isCellSelected('pack', packName, 'AP')));
+        tr.appendChild(createTd('pack', packName, 'FC', `<span class="stats-count status-fc">${row.fc}</span><span class="stats-rate">${getRateStr(row.fc, row.total)}</span>`, isCellSelected('pack', packName, 'FC')));
+        tr.appendChild(createTd('pack', packName, 'CLEAR', `<span class="stats-count status-clear">${row.clear}</span><span class="stats-rate">${getRateStr(row.clear, row.total)}</span>`, isCellSelected('pack', packName, 'CLEAR')));
+
         packBody.appendChild(tr);
     });
 
     const totalTr = document.createElement('tr');
     totalTr.className = 'total-row';
 
-    totalTr.innerHTML = `
-        <td onclick="filterCell(event, 'pack', null, null)" style="cursor: pointer; text-decoration: underline;" title="전체 목록 보기">TOTAL</td>
-        <td onclick="filterCell(event, 'pack', null, 'AP+')" oncontextmenu="filterCell(event, 'pack', null, 'AP+')" style="cursor: pointer;" class="${isCellSelected('pack', null, 'AP+')}"><span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span></td>
-        <td onclick="filterCell(event, 'pack', null, 'AP')" oncontextmenu="filterCell(event, 'pack', null, 'AP')" style="cursor: pointer;" class="${isCellSelected('pack', null, 'AP')}"><span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span></td>
-        <td onclick="filterCell(event, 'pack', null, 'FC')" oncontextmenu="filterCell(event, 'pack', null, 'FC')" style="cursor: pointer;" class="${isCellSelected('pack', null, 'FC')}"><span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span></td>
-        <td onclick="filterCell(event, 'pack', null, 'CLEAR')" oncontextmenu="filterCell(event, 'pack', null, 'CLEAR')" style="cursor: pointer;" class="${isCellSelected('pack', null, 'CLEAR')}"><span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span></td>
-    `;
+    const tdTotalLabel = createTd('pack', null, null, 'TOTAL');
+    tdTotalLabel.style.textDecoration = 'underline';
+
+    totalTr.appendChild(tdTotalLabel);
+    totalTr.appendChild(createTd('pack', null, 'AP+', `<span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span>`, isCellSelected('pack', null, 'AP+')));
+    totalTr.appendChild(createTd('pack', null, 'AP', `<span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span>`, isCellSelected('pack', null, 'AP')));
+    totalTr.appendChild(createTd('pack', null, 'FC', `<span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span>`, isCellSelected('pack', null, 'FC')));
+    totalTr.appendChild(createTd('pack', null, 'CLEAR', `<span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span>`, isCellSelected('pack', null, 'CLEAR')));
+
     packBody.appendChild(totalTr);
 }
 
