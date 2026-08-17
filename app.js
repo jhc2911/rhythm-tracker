@@ -327,32 +327,57 @@ function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
     }
 }
 
-// 📱 [신규] 모바일 롱 프레스(길게 누르기) 이벤트 바인딩 헬퍼 함수
+// 📱 모바일 롱 프레스(길게 누르기) 및 터치 잔상 방지 바인딩 헬퍼 함수
 function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
     let touchTimer = null;
     let isLongPress = false;
+    let longPressTriggered = false; // 롱 프레스 실행 여부 플래그
 
-    // 모바일 터치 시작 (0.5초 누르면 미달성 필터 동작)
+    // 터치 시작 (0.5초 누르면 미달성 필터 동작)
     element.addEventListener('touchstart', (e) => {
         isLongPress = false;
+        longPressTriggered = false;
+
         touchTimer = setTimeout(() => {
             isLongPress = true;
+            longPressTriggered = true;
+            
+            // 모바일 롱 프레스에 의한 텍스트 드래그/선택 및 기본 팝업 방지
+            if (e.cancelable) e.preventDefault();
+            
+            // 미달성 필터링 실행
             filterCell(e, type, categoryValue, statusType, true); // forceNegative = true
         }, 500);
-    }, { passive: true });
+    }, { passive: false });
 
-    // 손가락을 떼거나 드래그 이동 시 타이머 취소
+    // 손가락을 뗄 때 롱 프레스 직후의 터치 잔상 이벤트 차단
     element.addEventListener('touchend', (e) => {
         if (touchTimer) clearTimeout(touchTimer);
-    });
 
+        if (longPressTriggered) {
+            // 롱 프레스가 동작한 후 발생한 touchend의 기본 동작(클릭 발생)을 차단
+            if (e.cancelable) e.preventDefault();
+            e.stopPropagation();
+            
+            // 잔상 클릭 방지를 위해 잠시 후 플래그 해제
+            setTimeout(() => {
+                longPressTriggered = false;
+                isLongPress = false;
+            }, 300);
+        }
+    }, { passive: false });
+
+    // 드래그/스크롤 이동 시 롱 프레스 타이머 취소
     element.addEventListener('touchmove', () => {
-        if (touchTimer) clearTimeout(touchTimer);
-    });
+        if (touchTimer) {
+            clearTimeout(touchTimer);
+            touchTimer = null;
+        }
+    }, { passive: true });
 
-    // 일반 클릭 이벤트 (롱 프레스가 발생한 경우는 클릭 동작 방지)
+    // PC 및 일반 터치 클릭 이벤트 처리
     element.addEventListener('click', (e) => {
-        if (isLongPress) {
+        if (isLongPress || longPressTriggered) {
             e.preventDefault();
             e.stopPropagation();
             return;
