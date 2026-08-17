@@ -3,6 +3,11 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const SUPABASE_URL = 'https://qpcczmuwydpwpwpskoej.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2N6bXV3eWRwd3B3cHNrb2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NDgzNDEsImV4cCI6MjEwMDEyNDM0MX0.qje22MHokVuAXwrISej1KDrhFbFZFYgluzYwwdoO82I';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 let fetchedData = [];          // 유저의 플레이 기록 (records 테이블)
 let allSongsList = [];         // 전체 곡 목록 (songs 테이블)
 let selectedLevelFilter = null; // 🎯 레벨 필터 상태
@@ -329,49 +334,70 @@ function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
     applyCurrentFilterAndRender();
 }
 
-// 📱 🎯 통합 셀 필터링 제어 함수 (이벤트 에러 방지 수정)
-function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
-    if (e && e.preventDefault) {
+// 📱 모바일 롱 프레스(길게 누르기) 및 터치 잔상 방지 바인딩 헬퍼 함수 (수정 완료)
+function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
+    let touchTimer = null;
+    let isLongPress = false;
+    let pendingFilterArgs = null; // 롱 프레스 실행 예약 데이터
+
+    element.addEventListener('touchstart', (e) => {
+        isLongPress = false;
+        pendingFilterArgs = null;
+
+        touchTimer = setTimeout(() => {
+            isLongPress = true;
+            // 500ms 도달 시 실행할 매개변수만 저장하고 위치는 절대 이동하지 않음
+            pendingFilterArgs = [e, type, categoryValue, statusType, true];
+        }, 500);
+    }, { passive: true });
+
+    element.addEventListener('touchend', (e) => {
+        if (touchTimer) {
+            clearTimeout(touchTimer);
+            touchTimer = null;
+        }
+
+        // 🖐️ 손가락을 완전히 뗀 '바로 이 순간'에 필터링 및 스크롤 실행
+        if (isLongPress && pendingFilterArgs) {
+            if (e.cancelable) e.preventDefault();
+            e.stopPropagation();
+
+            filterCell(...pendingFilterArgs);
+            pendingFilterArgs = null;
+
+            // 손가락을 뗀 후 안전하게 스크롤 이동
+            scrollToSummary();
+
+            setTimeout(() => {
+                isLongPress = false;
+            }, 300);
+        }
+    }, { passive: false });
+
+    element.addEventListener('touchmove', () => {
+        if (touchTimer) {
+            clearTimeout(touchTimer);
+            touchTimer = null;
+        }
+        pendingFilterArgs = null;
+        isLongPress = false;
+    }, { passive: true });
+
+    element.addEventListener('click', (e) => {
+        if (isLongPress) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+        filterCell(e, type, categoryValue, statusType, false);
+        scrollToSummary(); // 짧은 클릭 시에도 스크롤 이동
+    });
+
+    element.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-    }
-
-    let wantNegative = false;
-
-    // forceNegative가 직접 들어왔다면 해당 값 사용 (모바일 롱프레스, 우클릭 등)
-    if (forceNegative !== null) {
-        wantNegative = forceNegative;
-    } else if (e) {
-        // e가 MouseEvent 객체일 때만 안전하게 속성 체크
-        const isRightClick = (e.button === 2);
-        const isShiftOrAlt = Boolean(e.shiftKey || e.altKey);
-        wantNegative = isRightClick || isShiftOrAlt;
-    }
-
-    // 동일한 필터 재클릭 시 필터 해제
-    const isSameLevel = (type === 'level' && selectedLevelFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
-    const isSamePack = (type === 'pack' && selectedPackFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
-    const isSameDiff = (type === 'diff' && selectedDiffFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
-
-    if (isSameLevel || isSamePack || isSameDiff) {
-        selectedLevelFilter = null;
-        selectedPackFilter = null;
-        selectedDiffFilter = null;
-        selectedStatusFilter = null;
-        isNegativeFilter = false;
-    } else {
-        selectedStatusFilter = statusType;
-        isNegativeFilter = wantNegative;
-
-        selectedLevelFilter = (type === 'level') ? categoryValue : null;
-        selectedPackFilter = (type === 'pack') ? categoryValue : null;
-        selectedDiffFilter = (type === 'diff') ? categoryValue : null;
-    }
-
-    // 화면 업데이트
-    renderStatsTable();
-    renderDiffStatsTable();
-    renderPackStatsTable();
-    applyCurrentFilterAndRender();
+        filterCell(e, type, categoryValue, statusType, true);
+        scrollToSummary();
+    });
 }
 
 function filterByLevel(level) { filterCell(null, 'level', level, null); scrollToSummary(); }
