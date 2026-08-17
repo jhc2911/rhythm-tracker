@@ -329,7 +329,7 @@ function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
     applyCurrentFilterAndRender();
 }
 
-// 📱 모바일 롱 프레스(길게 누르기) 및 터치 잔상 방지 바인딩 헬퍼 함수 (수정 완료)
+// 📱 모바일 롱 프레스(길게 누르기) 및 터치 잔상 방지 바인딩 헬퍼 함수
 function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
     let touchTimer = null;
     let isLongPress = false;
@@ -339,30 +339,33 @@ function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
         isLongPress = false;
         pendingFilterArgs = null;
 
+        // 500ms 후 롱 프레스 상태로 판정만 하고, 스크롤/필터링은 절대 실행하지 않음
         touchTimer = setTimeout(() => {
             isLongPress = true;
-            // 500ms 도달 시 실행할 매개변수만 저장하고 위치는 절대 이동하지 않음
             pendingFilterArgs = [e, type, categoryValue, statusType, true];
         }, 500);
     }, { passive: true });
 
     element.addEventListener('touchend', (e) => {
+        // 타이머 취소
         if (touchTimer) {
             clearTimeout(touchTimer);
             touchTimer = null;
         }
 
-        // 🖐️ 손가락을 완전히 뗀 '바로 이 순간'에 필터링 및 스크롤 실행
+        // 🖐️ 손가락을 완전히 뗀 바로 이 순간(touchend)에만 필터링과 스크롤 실행
         if (isLongPress && pendingFilterArgs) {
             if (e.cancelable) e.preventDefault();
             e.stopPropagation();
 
+            // 1. 필터 적용
             filterCell(...pendingFilterArgs);
             pendingFilterArgs = null;
 
-            // 손가락을 뗀 후 안전하게 스크롤 이동
+            // 2. 손가락을 뗀 후 안전하게 스크롤 이동
             scrollToSummary();
 
+            // 후속 click 이벤트 오작동 방지 플래그 리셋
             setTimeout(() => {
                 isLongPress = false;
             }, 300);
@@ -370,6 +373,7 @@ function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
     }, { passive: false });
 
     element.addEventListener('touchmove', () => {
+        // 터치 상태에서 손가락을 움직이면(스크롤 시도 등) 롱 프레스 취소
         if (touchTimer) {
             clearTimeout(touchTimer);
             touchTimer = null;
@@ -379,16 +383,19 @@ function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
     }, { passive: true });
 
     element.addEventListener('click', (e) => {
+        // 롱 프레스 이벤트가 처리된 경우 click 동작 차단
         if (isLongPress) {
             e.preventDefault();
             e.stopPropagation();
             return;
         }
+        // 일반 짧은 터치/클릭
         filterCell(e, type, categoryValue, statusType, false);
-        scrollToSummary(); // 짧은 클릭 시에도 스크롤 이동
+        scrollToSummary();
     });
 
     element.addEventListener('contextmenu', (e) => {
+        // 마우스 우클릭 대응
         e.preventDefault();
         filterCell(e, type, categoryValue, statusType, true);
         scrollToSummary();
