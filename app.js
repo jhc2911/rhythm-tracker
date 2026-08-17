@@ -331,53 +331,44 @@ function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
 function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
     let touchTimer = null;
     let isLongPress = false;
-    let longPressTriggered = false; // 롱 프레스 실행 여부 플래그
+    let pendingFilterArgs = null; // 롱 프레스 실행 예약 데이터
 
-    // 터치 시작 (0.5초 누르면 미달성 필터 동작)
     element.addEventListener('touchstart', (e) => {
         isLongPress = false;
-        longPressTriggered = false;
+        pendingFilterArgs = null;
 
         touchTimer = setTimeout(() => {
             isLongPress = true;
-            longPressTriggered = true;
-            
-            // 모바일 롱 프레스에 의한 텍스트 드래그/선택 및 기본 팝업 방지
-            if (e.cancelable) e.preventDefault();
-            
-            // 미달성 필터링 실행
-            filterCell(e, type, categoryValue, statusType, true); // forceNegative = true
+            // 롱 프레스 조건 저장 (즉시 스크롤하지 않음)
+            pendingFilterArgs = [e, type, categoryValue, statusType, true];
         }, 500);
-    }, { passive: false });
+    }, { passive: true });
 
-    // 손가락을 뗄 때 롱 프레스 직후의 터치 잔상 이벤트 차단
     element.addEventListener('touchend', (e) => {
         if (touchTimer) clearTimeout(touchTimer);
 
-        if (longPressTriggered) {
-            // 롱 프레스가 동작한 후 발생한 touchend의 기본 동작(클릭 발생)을 차단
+        if (isLongPress && pendingFilterArgs) {
             if (e.cancelable) e.preventDefault();
             e.stopPropagation();
-            
-            // 잔상 클릭 방지를 위해 잠시 후 플래그 해제
-            setTimeout(() => {
-                longPressTriggered = false;
-                isLongPress = false;
-            }, 300);
+
+            // 🖐️ 손가락을 뗀 '지금' 필터링 및 스크롤 실행 (위치 이동으로 인한 이중 입력 방지)
+            filterCell(...pendingFilterArgs);
+            pendingFilterArgs = null;
+
+            setTimeout(() => { isLongPress = false; }, 300);
         }
     }, { passive: false });
 
-    // 드래그/스크롤 이동 시 롱 프레스 타이머 취소
     element.addEventListener('touchmove', () => {
         if (touchTimer) {
             clearTimeout(touchTimer);
             touchTimer = null;
         }
+        pendingFilterArgs = null;
     }, { passive: true });
 
-    // PC 및 일반 터치 클릭 이벤트 처리
     element.addEventListener('click', (e) => {
-        if (isLongPress || longPressTriggered) {
+        if (isLongPress) {
             e.preventDefault();
             e.stopPropagation();
             return;
@@ -385,7 +376,6 @@ function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
         filterCell(e, type, categoryValue, statusType, false);
     });
 
-    // PC 마우스 우클릭 (contextmenu)
     element.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         filterCell(e, type, categoryValue, statusType, true);
