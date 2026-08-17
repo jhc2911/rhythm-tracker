@@ -329,69 +329,49 @@ function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
     applyCurrentFilterAndRender();
 }
 
-// 📱 모바일 롱 프레스(길게 누르기) 및 터치 잔상 방지 바인딩 헬퍼 함수 (수정완료)
-function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
-    let touchTimer = null;
-    let isLongPress = false;
-
-    element.addEventListener('touchstart', (e) => {
-        isLongPress = false;
-
-        // 500ms 동안 누르고 있으면 롱 프레스 상태로만 변경
-        touchTimer = setTimeout(() => {
-            isLongPress = true;
-        }, 500);
-    }, { passive: true });
-
-    element.addEventListener('touchend', (e) => {
-        if (touchTimer) {
-            clearTimeout(touchTimer);
-            touchTimer = null;
-        }
-
-        // 🖐️ 손가락을 완전히 뗀 시점(touchend)에 동작 실행
-        if (isLongPress) {
-            if (e.cancelable) e.preventDefault();
-            e.stopPropagation();
-
-            // 롱 프레스: e(이벤트) 대신 null을 전달하고 forceNegative를 true로 명시
-            filterCell(null, type, categoryValue, statusType, true);
-            scrollToSummary();
-
-            // touchend 직후 발생하는 click 이벤트 방지용
-            setTimeout(() => {
-                isLongPress = false;
-            }, 300);
-        }
-    }, { passive: false });
-
-    element.addEventListener('touchmove', () => {
-        // 손가락을 움직이면(스크롤 등) 롱 프레스 타이머 취소
-        if (touchTimer) {
-            clearTimeout(touchTimer);
-            touchTimer = null;
-        }
-        isLongPress = false;
-    }, { passive: true });
-
-    element.addEventListener('click', (e) => {
-        // 롱 프레스 처리 후 들어오는 잔상 click 방지
-        if (isLongPress) {
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-        }
-        // 일반 클릭 / 짧은 터치
-        filterCell(e, type, categoryValue, statusType, false);
-        scrollToSummary();
-    });
-
-    element.addEventListener('contextmenu', (e) => {
-        // PC 우클릭
+// 📱 🎯 통합 셀 필터링 제어 함수 (이벤트 에러 방지 수정)
+function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
+    if (e && e.preventDefault) {
         e.preventDefault();
-        filterCell(e, type, categoryValue, statusType, true);
-        scrollToSummary();
-    });
+    }
+
+    let wantNegative = false;
+
+    // forceNegative가 직접 들어왔다면 해당 값 사용 (모바일 롱프레스, 우클릭 등)
+    if (forceNegative !== null) {
+        wantNegative = forceNegative;
+    } else if (e) {
+        // e가 MouseEvent 객체일 때만 안전하게 속성 체크
+        const isRightClick = (e.button === 2);
+        const isShiftOrAlt = Boolean(e.shiftKey || e.altKey);
+        wantNegative = isRightClick || isShiftOrAlt;
+    }
+
+    // 동일한 필터 재클릭 시 필터 해제
+    const isSameLevel = (type === 'level' && selectedLevelFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
+    const isSamePack = (type === 'pack' && selectedPackFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
+    const isSameDiff = (type === 'diff' && selectedDiffFilter === categoryValue && selectedStatusFilter === statusType && isNegativeFilter === wantNegative);
+
+    if (isSameLevel || isSamePack || isSameDiff) {
+        selectedLevelFilter = null;
+        selectedPackFilter = null;
+        selectedDiffFilter = null;
+        selectedStatusFilter = null;
+        isNegativeFilter = false;
+    } else {
+        selectedStatusFilter = statusType;
+        isNegativeFilter = wantNegative;
+
+        selectedLevelFilter = (type === 'level') ? categoryValue : null;
+        selectedPackFilter = (type === 'pack') ? categoryValue : null;
+        selectedDiffFilter = (type === 'diff') ? categoryValue : null;
+    }
+
+    // 화면 업데이트
+    renderStatsTable();
+    renderDiffStatsTable();
+    renderPackStatsTable();
+    applyCurrentFilterAndRender();
 }
 
 function filterByLevel(level) { filterCell(null, 'level', level, null); scrollToSummary(); }
