@@ -138,22 +138,22 @@ async function loadAndRenderLogs() {
 
         if (s.type === 'CHANGED') {
             scoreHtml = `
-                <span style="display: inline-block; width: 72px; text-align: right;">${s.oldStr}</span>
-                <span style="display: inline-block; width: 20px; text-align: center; color: #ffb74d;">➔</span>
-                <span style="display: inline-block; width: 72px; text-align: right;">${s.newStr}</span>
-                <span style="display: inline-block; width: 65px; text-align: left; margin-left: 4px; color: #888;">${s.diffStr}</span>
+                <span style="display: inline-block; width: 62px; text-align: right;">${s.oldStr}</span>
+                <span style="display: inline-block; width: 16px; text-align: center; color: #ffb74d;">➔</span>
+                <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 55px; text-align: left; margin-left: 3px; color: #888;">${s.diffStr}</span>
             `;
         } else if (s.type === 'NEW') {
             scoreHtml = `
-                <span style="display: inline-block; width: 72px; text-align: center; color: #4caf50;">NEW</span>
-                <span style="display: inline-block; width: 20px; text-align: center; color: #ffb74d;">➔</span>
-                <span style="display: inline-block; width: 72px; text-align: right;">${s.newStr}</span>
-                <span style="display: inline-block; width: 65px;"></span>
+                <span style="display: inline-block; width: 62px; text-align: center; color: #4caf50;">NEW</span>
+                <span style="display: inline-block; width: 16px; text-align: center; color: #ffb74d;">➔</span>
+                <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 55px;"></span>
             `;
         } else {
             scoreHtml = `
-                <span style="display: inline-block; width: 72px; text-align: right;">${s.newStr}</span>
-                <span style="display: inline-block; width: 161px;"></span>
+                <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 136px;"></span>
             `;
         }
 
@@ -166,19 +166,17 @@ async function loadAndRenderLogs() {
                 <span style="color: #888;">${item.date}</span>
                 <span style="color: #ccc;">|</span>
                 
-                <!-- 1. 노래 제목: 180px로 조율 -->
                 <strong style="color: #2196F3; display: inline-block; width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;" title="${item.title}">${item.title}</strong>
                 
                 <span style="color: #ccc;">|</span>
                 
-                <!-- 2. 난이도: 72px로 조율 -->
                 <span style="font-weight: bold; color: ${diffColor}; display: inline-block; width: 72px; text-align: center;">[${item.difficulty}]</span>
                 
                 <span style="color: #ccc;">|</span>
                 
-                <!-- 3. 점수: 전체 너비 280px 및 내부 요소 간격 축소 -->
-                <div style="display: inline-flex; align-items: center; width: 280px;">
-                    <span style="margin-right: 4px;">점수:</span>
+                <!-- 점수 영역: 너비를 245px로 줄여 여백 타이트하게 조절 -->
+                <div style="display: inline-flex; align-items: center; width: 245px;">
+                    <span style="margin-right: 2px;">점수:</span>
                     ${scoreHtml}
                 </div>
                 
