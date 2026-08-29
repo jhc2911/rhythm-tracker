@@ -136,28 +136,29 @@ async function loadAndRenderLogs() {
         const s = item.scoreObj;
         let scoreHtml = '';
 
-        // 고정 width 인라인 스타일을 제거하고 margin/gap 기반 구조로 변경하여 겹침 방지
         if (s.type === 'CHANGED') {
             scoreHtml = `
-                <span style="font-weight: 500;">${s.oldStr}</span>
-                <span style="color: #ffb74d; margin: 0 4px;">➔</span>
-                <span style="font-weight: 500;">${s.newStr}</span>
-                <span style="color: #888; margin-left: 6px;">${s.diffStr}</span>
+                <span style="display: inline-block; width: 70px; text-align: right;">${s.oldStr}</span>
+                <span style="color: #ffb74d; margin: 0 6px;">➔</span>
+                <span style="display: inline-block; width: 70px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 60px; text-align: left; margin-left: 6px; color: #888;">${s.diffStr}</span>
             `;
         } else if (s.type === 'NEW') {
             scoreHtml = `
-                <span style="color: #4caf50; font-weight: bold; margin-right: 4px;">NEW</span>
-                <span style="color: #ffb74d; margin-right: 4px;">➔</span>
-                <span style="font-weight: 500;">${s.newStr}</span>
+                <span style="display: inline-block; width: 70px; text-align: center; color: #4caf50; font-weight: bold;">NEW</span>
+                <span style="color: #ffb74d; margin: 0 6px;">➔</span>
+                <span style="display: inline-block; width: 70px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 60px;"></span>
             `;
         } else {
             scoreHtml = `
-                <span style="font-weight: 500;">${s.newStr}</span>
+                <span style="display: inline-block; width: 70px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 148px;"></span>
             `;
         }
 
         const statusHtml = item.newStatusText 
-            ? `<span style="font-weight: bold; color: #ffd700; white-space: nowrap; margin-left: auto;">첫 ${item.newStatusText} 달성</span>` 
+            ? `<span style="font-weight: bold; color: #ffd700; white-space: nowrap;">첫 ${item.newStatusText} 달성</span>` 
             : '';
 
         return `
@@ -166,39 +167,37 @@ async function loadAndRenderLogs() {
                 border-bottom: 1px solid rgba(128,128,128,0.2); 
                 font-size: 13px; 
                 font-family: monospace; 
-                display: flex; 
-                flex-wrap: nowrap; 
-                overflow-x: auto; 
+                display: grid; 
+                grid-template-columns: 145px 12px 180px 12px 80px 12px 280px 1fr; 
+                align-items: center; 
                 white-space: nowrap; 
-                gap: 10px; 
-                align-items: center;
-                -webkit-overflow-scrolling: touch;
+                overflow-x: auto;
+                min-width: 800px;
             ">
-                <span style="color: #888; flex-shrink: 0;">${item.date}</span>
-                <span style="color: #ccc; flex-shrink: 0;">|</span>
+                <span style="color: #888;">${item.date}</span>
+                <span style="color: #ccc; text-align: center;">|</span>
                 
                 <strong style="
                     color: #2196F3; 
-                    max-width: 160px; 
-                    min-width: 100px;
                     white-space: nowrap; 
                     overflow: hidden; 
-                    text-overflow: ellipsis; 
-                    flex-shrink: 0;
+                    text-overflow: ellipsis;
                 " title="${item.title}">${item.title}</strong>
                 
-                <span style="color: #ccc; flex-shrink: 0;">|</span>
+                <span style="color: #ccc; text-align: center;">|</span>
                 
-                <span style="font-weight: bold; color: ${diffColor}; flex-shrink: 0;">[${item.difficulty}]</span>
+                <span style="font-weight: bold; color: ${diffColor}; text-align: center;">[${item.difficulty}]</span>
                 
-                <span style="color: #ccc; flex-shrink: 0;">|</span>
+                <span style="color: #ccc; text-align: center;">|</span>
                 
-                <div style="display: inline-flex; align-items: center; flex-shrink: 0;">
+                <div style="display: inline-flex; align-items: center;">
                     <span style="margin-right: 6px;">점수:</span>
                     ${scoreHtml}
                 </div>
                 
-                ${statusHtml}
+                <div style="padding-left: 15px;">
+                    ${statusHtml}
+                </div>
             </div>
         `;
     }).join('');
