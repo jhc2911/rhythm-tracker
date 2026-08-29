@@ -174,8 +174,8 @@ async function loadAndRenderLogs() {
                 
                 <span style="color: #ccc;">|</span>
                 
-                <!-- 점수 영역: 너비를 245px로 줄여 여백 타이트하게 조절 -->
-                <div style="display: inline-flex; align-items: center; width: 245px;">
+                <!-- 점수 영역: 너비를 270px로 줄여 여백 타이트하게 조절 -->
+                <div style="display: inline-flex; align-items: center; width: 270px;">
                     <span style="margin-right: 2px;">점수:</span>
                     ${scoreHtml}
                 </div>
