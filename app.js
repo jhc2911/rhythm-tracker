@@ -136,25 +136,25 @@ async function loadAndRenderLogs() {
         const s = item.scoreObj;
         let scoreHtml = '';
 
-        // 🎯 점수 영역 너비를 넉넉하게 확보하여 숫자가 절대 겹치지 않도록 수정
+        // 점수와 증감치가 절대 겹치지 않도록 너비 확보
         if (s.type === 'CHANGED') {
             scoreHtml = `
-                <span style="display: inline-block; width: 88px; text-align: right;">${s.oldStr}</span>
+                <span style="display: inline-block; width: 85px; text-align: right;">${s.oldStr}</span>
                 <span style="color: #ffb74d; margin: 0 4px;">➔</span>
-                <span style="display: inline-block; width: 88px; text-align: left;">${s.newStr}</span>
+                <span style="display: inline-block; width: 85px; text-align: right;">${s.newStr}</span>
                 <span style="display: inline-block; width: 65px; text-align: left; margin-left: 6px; color: #888;">${s.diffStr}</span>
             `;
         } else if (s.type === 'NEW') {
             scoreHtml = `
-                <span style="display: inline-block; width: 88px; text-align: center; color: #4caf50; font-weight: bold;">NEW</span>
+                <span style="display: inline-block; width: 85px; text-align: center; color: #4caf50; font-weight: bold;">NEW</span>
                 <span style="color: #ffb74d; margin: 0 4px;">➔</span>
-                <span style="display: inline-block; width: 88px; text-align: left;">${s.newStr}</span>
+                <span style="display: inline-block; width: 85px; text-align: right;">${s.newStr}</span>
                 <span style="display: inline-block; width: 65px;"></span>
             `;
         } else {
             scoreHtml = `
-                <span style="display: inline-block; width: 88px; text-align: left;">${s.newStr}</span>
-                <span style="display: inline-block; width: 163px;"></span>
+                <span style="display: inline-block; width: 85px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 160px;"></span>
             `;
         }
 
@@ -169,15 +169,16 @@ async function loadAndRenderLogs() {
                 font-size: 13px; 
                 font-family: monospace; 
                 display: grid; 
-                grid-template-columns: 145px 1fr 90px 300px auto; 
+                grid-template-columns: 145px 12px 180px 12px 80px 12px 280px 1fr; 
                 align-items: center; 
                 white-space: nowrap; 
-                gap: 8px;
+                overflow-x: auto;
                 width: 100%;
                 box-sizing: border-box;
             ">
                 <!-- 날짜 -->
                 <span style="color: #888;">${item.date}</span>
+                <span style="color: rgba(255,255,255,0.2); text-align: center;">|</span>
                 
                 <!-- 곡 제목 -->
                 <strong style="
@@ -186,9 +187,11 @@ async function loadAndRenderLogs() {
                     overflow: hidden; 
                     text-overflow: ellipsis;
                 " title="${item.title}">${item.title}</strong>
+                <span style="color: rgba(255,255,255,0.2); text-align: center;">|</span>
                 
                 <!-- 난이도 -->
                 <span style="font-weight: bold; color: ${diffColor}; text-align: center;">[${item.difficulty}]</span>
+                <span style="color: rgba(255,255,255,0.2); text-align: center;">|</span>
                 
                 <!-- 점수 영역 -->
                 <div style="display: inline-flex; align-items: center;">
@@ -197,7 +200,7 @@ async function loadAndRenderLogs() {
                 </div>
                 
                 <!-- 달성 상태 -->
-                <div style="text-align: right; min-width: 130px;">
+                <div style="padding-left: 15px;">
                     ${statusHtml}
                 </div>
             </div>
