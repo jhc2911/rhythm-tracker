@@ -175,8 +175,7 @@ async function loadAndRenderLogs() {
                 min-width: 800px;
             ">
                 <span style="color: #888;">${item.date}</span>
-                <span style="color: #ccc; text-align: center;">|</span>
-                
+                                
                 <strong style="
                     color: #2196F3; 
                     white-space: nowrap; 
@@ -184,11 +183,8 @@ async function loadAndRenderLogs() {
                     text-overflow: ellipsis;
                 " title="${item.title}">${item.title}</strong>
                 
-                <span style="color: #ccc; text-align: center;">|</span>
-                
+                               
                 <span style="font-weight: bold; color: ${diffColor}; text-align: center;">[${item.difficulty}]</span>
-                
-                <span style="color: #ccc; text-align: center;">|</span>
                 
                 <div style="display: inline-flex; align-items: center;">
                     <span style="margin-right: 6px;">점수:</span>
