@@ -140,14 +140,14 @@ async function loadAndRenderLogs() {
             scoreHtml = `
                 <span style="display: inline-block; width: 62px; text-align: right;">${s.oldStr}</span>
                 <span style="display: inline-block; width: 40px; text-align: center; color: #ffb74d;">➔</span>
-                <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 52px; text-align: right;">${s.newStr}</span>
                 <span style="display: inline-block; width: 55px; text-align: left; margin-left: 3px; color: #888;">${s.diffStr}</span>
             `;
         } else if (s.type === 'NEW') {
             scoreHtml = `
                 <span style="display: inline-block; width: 62px; text-align: center; color: #4caf50;">NEW</span>
                 <span style="display: inline-block; width: 40px; text-align: center; color: #ffb74d;">➔</span>
-                <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 52px; text-align: right;">${s.newStr}</span>
                 <span style="display: inline-block; width: 55px;"></span>
             `;
         } else {
@@ -174,8 +174,8 @@ async function loadAndRenderLogs() {
                 
                 <span style="color: #ccc;">|</span>
                 
-                <!-- 점수 영역: 너비를 270px로 줄여 여백 타이트하게 조절 -->
-                <div style="display: inline-flex; align-items: center; width: 270px;">
+                <!-- 점수 영역: 너비를 260px로 줄여 여백 타이트하게 조절 -->
+                <div style="display: inline-flex; align-items: center; width: 260px;">
                     <span style="margin-right: 2px;">점수:</span>
                     ${scoreHtml}
                 </div>
