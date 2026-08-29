@@ -123,19 +123,25 @@ async function loadAndRenderLogs() {
         return;
     }
 
-    logContainer.innerHTML = parsedLogs.map(item => `
-        <div class="log-item-row" style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.2); font-size: 13px; font-family: monospace; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-            <span style="color: #888;">${item.date}</span>
-            <span style="color: #ccc;">|</span>
-            <strong style="color: #2196F3;">${item.title}</strong>
-            <span style="color: #ccc;">|</span>
-            <span style="font-weight: bold; color: #ff5722;">[${item.difficulty}]</span>
-            <span style="color: #ccc;">|</span>
-            <span>점수: ${item.scoreText}</span>
-            <span style="color: #ccc;">|</span>
-            <span>상태: ${item.statusText}</span>
-        </div>
-    `).join('');
+    logContainer.innerHTML = parsedLogs.map(item => {
+        // item.statusText가 존재할 때만 구분선(|)과 상태 문구를 표시
+        const statusHtml = item.statusText 
+            ? `<span style="color: #ccc;">|</span><span>상태: ${item.statusText}</span>` 
+            : '';
+
+        return `
+            <div class="log-item-row" style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.2); font-size: 13px; font-family: monospace; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                <span style="color: #888;">${item.date}</span>
+                <span style="color: #ccc;">|</span>
+                <strong style="color: #2196F3;">${item.title}</strong>
+                <span style="color: #ccc;">|</span>
+                <span style="font-weight: bold; color: #ff5722;">[${item.difficulty}]</span>
+                <span style="color: #ccc;">|</span>
+                <span>점수: ${item.scoreText}</span>
+                ${statusHtml}
+            </div>
+        `;
+    }).join('');
 }
 
 // 헬퍼: 날짜 포맷팅 (YY-MM-DD HH:mm:ss)
@@ -186,13 +192,12 @@ function parseLogRecords(logRows) {
                     scoreText = `${Number(newScore).toLocaleString()}`;
                 }
 
-                let statusText = '-';
+                // 상태에 변화가 있는 경우에만 상태 텍스트 생성
+                let statusText = null;
                 if (isStatusChanged) {
                     const displayOldStr = formatStatusDisplay(oldStatus);
                     const displayNewStr = formatStatusDisplay(newStatus);
-                    statusText = `${displayOldStr} ➔ ${displayNewStr}`;
-                } else if (newStatus) {
-                    statusText = formatStatusDisplay(newStatus);
+                    statusText = displayOldStr ? `${displayOldStr} ➔ ${displayNewStr}` : displayNewStr;
                 }
 
                 parsedLogs.push({
