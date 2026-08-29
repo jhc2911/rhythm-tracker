@@ -139,14 +139,14 @@ async function loadAndRenderLogs() {
         if (s.type === 'CHANGED') {
             scoreHtml = `
                 <span style="display: inline-block; width: 62px; text-align: right;">${s.oldStr}</span>
-                <span style="display: inline-block; width: 16px; text-align: center; color: #ffb74d;">➔</span>
+                <span style="display: inline-block; width: 40px; text-align: center; color: #ffb74d;">➔</span>
                 <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
                 <span style="display: inline-block; width: 55px; text-align: left; margin-left: 3px; color: #888;">${s.diffStr}</span>
             `;
         } else if (s.type === 'NEW') {
             scoreHtml = `
                 <span style="display: inline-block; width: 62px; text-align: center; color: #4caf50;">NEW</span>
-                <span style="display: inline-block; width: 16px; text-align: center; color: #ffb74d;">➔</span>
+                <span style="display: inline-block; width: 40px; text-align: center; color: #ffb74d;">➔</span>
                 <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
                 <span style="display: inline-block; width: 55px;"></span>
             `;
