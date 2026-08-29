@@ -158,7 +158,7 @@ async function loadAndRenderLogs() {
         }
 
         const statusHtml = item.newStatusText 
-            ? `<span style="color: #ccc;">|</span><span style="font-weight: bold; color: #ffd700;">첫 ${item.newStatusText} 달성</span>` 
+            ? `<span style="font-weight: bold; color: #ffd700;">첫 ${item.newStatusText} 달성</span>` 
             : '';
 
         return `
