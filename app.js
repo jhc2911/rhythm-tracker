@@ -136,47 +136,65 @@ async function loadAndRenderLogs() {
         const s = item.scoreObj;
         let scoreHtml = '';
 
+        // 고정 width 인라인 스타일을 제거하고 margin/gap 기반 구조로 변경하여 겹침 방지
         if (s.type === 'CHANGED') {
             scoreHtml = `
-                <span style="display: inline-block; width: 62px; text-align: right;">${s.oldStr}</span>
-                <span style="display: inline-block; width: 40px; text-align: center; color: #ffb74d;">➔</span>
-                <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
-                <span style="display: inline-block; width: 55px; text-align: left; margin-left: 3px; color: #888;">${s.diffStr}</span>
+                <span style="font-weight: 500;">${s.oldStr}</span>
+                <span style="color: #ffb74d; margin: 0 4px;">➔</span>
+                <span style="font-weight: 500;">${s.newStr}</span>
+                <span style="color: #888; margin-left: 6px;">${s.diffStr}</span>
             `;
         } else if (s.type === 'NEW') {
             scoreHtml = `
-                <span style="display: inline-block; width: 62px; text-align: center; color: #4caf50;">NEW</span>
-                <span style="display: inline-block; width: 40px; text-align: center; color: #ffb74d;">➔</span>
-                <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
-                <span style="display: inline-block; width: 55px;"></span>
+                <span style="color: #4caf50; font-weight: bold; margin-right: 4px;">NEW</span>
+                <span style="color: #ffb74d; margin-right: 4px;">➔</span>
+                <span style="font-weight: 500;">${s.newStr}</span>
             `;
         } else {
             scoreHtml = `
-                <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
-                <span style="display: inline-block; width: 136px;"></span>
+                <span style="font-weight: 500;">${s.newStr}</span>
             `;
         }
 
         const statusHtml = item.newStatusText 
-            ? `<span style="font-weight: bold; color: #ffd700;">첫 ${item.newStatusText} 달성</span>` 
+            ? `<span style="font-weight: bold; color: #ffd700; white-space: nowrap; margin-left: auto;">첫 ${item.newStatusText} 달성</span>` 
             : '';
 
         return `
-            <div class="log-item-row" style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.2); font-size: 13px; font-family: monospace; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-                <span style="color: #888;">${item.date}</span>
-                <span style="color: #ccc;">|</span>
+            <div class="log-item-row" style="
+                padding: 10px 12px; 
+                border-bottom: 1px solid rgba(128,128,128,0.2); 
+                font-size: 13px; 
+                font-family: monospace; 
+                display: flex; 
+                flex-wrap: nowrap; 
+                overflow-x: auto; 
+                white-space: nowrap; 
+                gap: 10px; 
+                align-items: center;
+                -webkit-overflow-scrolling: touch;
+            ">
+                <span style="color: #888; flex-shrink: 0;">${item.date}</span>
+                <span style="color: #ccc; flex-shrink: 0;">|</span>
                 
-                <strong style="color: #2196F3; display: inline-block; width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;" title="${item.title}">${item.title}</strong>
+                <strong style="
+                    color: #2196F3; 
+                    max-width: 160px; 
+                    min-width: 100px;
+                    white-space: nowrap; 
+                    overflow: hidden; 
+                    text-overflow: ellipsis; 
+                    flex-shrink: 0;
+                " title="${item.title}">${item.title}</strong>
                 
-                <span style="color: #ccc;">|</span>
+                <span style="color: #ccc; flex-shrink: 0;">|</span>
                 
-                <span style="font-weight: bold; color: ${diffColor}; display: inline-block; width: 72px; text-align: center;">[${item.difficulty}]</span>
+                <span style="font-weight: bold; color: ${diffColor}; flex-shrink: 0;">[${item.difficulty}]</span>
                 
-                <span style="color: #ccc;">|</span>
+                <span style="color: #ccc; flex-shrink: 0;">|</span>
                 
-                <!-- 점수 영역: 너비를 270px로 줄여 여백 타이트하게 조절 -->
-                <div style="display: inline-flex; align-items: center; width: 270px;">
-                    <span style="margin-right: 2px;">점수:</span>
+                <div style="display: inline-flex; align-items: center; flex-shrink: 0;">
+                    <span style="margin-right: 6px;">점수:</span>
                     ${scoreHtml}
                 </div>
                 
