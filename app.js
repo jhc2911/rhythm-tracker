@@ -20,55 +20,10 @@ window.onload = async function() {
     if (!session) {
         alert('로그인이 필요한 페이지입니다.');
         window.location.href = 'login.html';
-        return;
-    }
-
-    // 🚀 [방법 1 적용] Promise.all을 통해 3개 테이블 데이터를 1번에 동시 병렬 요청
-    try {
-        const [songsRes, recordsRes, logsRes] = await Promise.all([
-            supabaseClient.from('songs').select('*').order('id', { ascending: true }),
-            supabaseClient.from('records').select(`
-                song_id,
-                casual_score,
-                normal_score,
-                hard_score,
-                expert_score,
-                casual_status,
-                normal_status,
-                hard_status,
-                expert_status,
-                songs (
-                    title,
-                    composer,
-                    casual_level,
-                    normal_level,
-                    hard_level,
-                    expert_level,
-                    casual_notes,
-                    normal_notes,
-                    hard_notes,
-                    expert_notes,
-                    pack_name
-                )
-            `),
-            supabaseClient.from('record_logs').select('*').order('updated_at', { ascending: false })
-        ]);
-
-        // 1. 전체 곡 데이터 할당
-        if (!songsRes.error && songsRes.data) {
-            allSongsList = songsRes.data;
-        } else {
-            console.error('songs 테이블 로드 오류:', songsRes.error);
-        }
-
-        // 2. 내 플레이 기록 바인딩 및 렌더링
-        renderRecords(recordsRes.data, recordsRes.error);
-
-        // 3. 기록 변경 로그 바인딩 및 렌더링
-        renderLogs(logsRes.data, logsRes.error);
-
-    } catch (err) {
-        console.error('초기 데이터 로딩 중 에러 발생:', err);
+    } else {
+        await loadAllSongs(); // 1. 전체 곡 데이터 먼저 로드
+        await loadRecords();  // 2. 내 플레이 기록 로드
+        await loadAndRenderLogs(); // 3. 기록 변경 로그 로드
     }
 };
 
@@ -77,7 +32,7 @@ async function handleLogout() {
     window.location.href = 'login.html';
 }
 
-// 0. 전체 songs 데이터 로드 (개별 호출 시 사용)
+// 0. 전체 songs 데이터 로드
 async function loadAllSongs() {
     const { data, error } = await supabaseClient
         .from('songs')
@@ -91,8 +46,10 @@ async function loadAllSongs() {
     }
 }
 
-// 1. 플레이 기록 데이터 불러오기 (개별 호출용)
+// 1. 플레이 기록 데이터 불러오기
 async function loadRecords() {
+    const tableBody = document.getElementById('tableBody');
+    
     const { data, error } = await supabaseClient
         .from('records')
         .select(`
@@ -120,13 +77,6 @@ async function loadRecords() {
             )
         `);
 
-    renderRecords(data, error);
-}
-
-// 플레이 기록 데이터 화면 렌더링
-function renderRecords(data, error) {
-    const tableBody = document.getElementById('tableBody');
-    
     if (error) {
         if (tableBody) tableBody.innerHTML = `<tr><td colspan="5" style="color:red;">오류 발생: ${error.message}</td></tr>`;
         return;
@@ -142,23 +92,18 @@ function renderRecords(data, error) {
     renderPackStatsTable(); // 앨범별 통계 출력
 }
 
-// 📜 1-2. record_logs 불러오기 (개별 호출용)
+// 📜 1-2. record_logs 불러오기 및 가공 출력 함수
 async function loadAndRenderLogs() {
-    const { data: logs, error } = await supabaseClient
-        .from('record_logs')
-        .select('*')
-        .order('updated_at', { ascending: false });
-
-    renderLogs(logs, error);
-}
-
-// record_logs 데이터 가공 및 화면 출력
-function renderLogs(logs, error) {
     const logContainer = document.getElementById('recordLogsBody') || document.getElementById('logContainer');
     if (!logContainer) {
         console.error('로그를 출력할 HTML 요소를 찾을 수 없습니다. (id="recordLogsBody" 확인 필요)');
         return;
     }
+
+    const { data: logs, error } = await supabaseClient
+        .from('record_logs')
+        .select('*')
+        .order('updated_at', { ascending: false });
 
     if (error) {
         console.error('record_logs 로드 오류:', error);
@@ -229,6 +174,7 @@ function renderLogs(logs, error) {
                 
                 <span style="color: #ccc;">|</span>
                 
+                <!-- 점수 영역: 너비를 270px로 줄여 여백 타이트하게 조절 -->
                 <div style="display: inline-flex; align-items: center; width: 270px;">
                     <span style="margin-right: 2px;">점수:</span>
                     ${scoreHtml}
@@ -1095,12 +1041,12 @@ function renderDiffStatsTable() {
     totalTr.appendChild(createTd('diff', null, 'AP+', `<span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span>`, isCellSelected('diff', null, 'AP+')));
     totalTr.appendChild(createTd('diff', null, 'AP', `<span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span>`, isCellSelected('diff', null, 'AP')));
     totalTr.appendChild(createTd('diff', null, 'FC', `<span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span>`, isCellSelected('diff', null, 'FC')));
-    totalTr.appendChild(createTotalTd('diff', null, 'CLEAR', `<span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span>`, isCellSelected('diff', null, 'CLEAR')));
+    totalTr.appendChild(createTd('diff', null, 'CLEAR', `<span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span>`, isCellSelected('diff', null, 'CLEAR')));
 
     diffBody.appendChild(totalTr);
 }
 
-// 📦 앨범별 통계 계산 및 렌더링 함수
+// 📦 앨범별 통계 계산 및 렌더링 함수 (에러 수정 완료)
 function renderPackStatsTable() {
     const packBody = document.getElementById('packStatsTableBody');
     if (!packBody) return;
@@ -1203,6 +1149,7 @@ function renderPackStatsTable() {
         packBody.appendChild(tr);
     });
 
+    // TOTAL 행 (createTd 함수명으로 통일 수정 완료)
     const totalTr = document.createElement('tr');
     totalTr.className = 'total-row';
 
