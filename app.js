@@ -130,48 +130,6 @@ async function loadAndRenderLogs() {
         expert: '#7832a6'
     };
 
-    // 🎯 모바일 전용 스타일을 위해 동적 style 태그 추가 (최초 1회만 추가)
-    if (!document.getElementById('responsive-log-style')) {
-        const style = document.createElement('style');
-        style.id = 'responsive-log-style';
-        style.innerHTML = `
-            .log-item-row {
-                display: grid;
-                grid-template-columns: 145px 12px 180px 12px 80px 12px 280px 1fr;
-                align-items: center;
-                padding: 10px 12px;
-                border-bottom: 1px solid rgba(128,128,128,0.2);
-                font-size: 13px;
-                font-family: monospace;
-                white-space: nowrap;
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            /* 모바일 화면 (화면 너비 768px 이하) 대응 */
-            @media (max-width: 768px) {
-                .log-item-row {
-                    display: flex !important;
-                    flex-wrap: wrap !important;
-                    gap: 6px 10px !important;
-                    padding: 10px 8px !important;
-                    white-space: normal !important;
-                }
-                .log-item-row .divider {
-                    display: none !important; /* 모바일에서는 구분선 비활성화 */
-                }
-                .log-item-row .log-title {
-                    max-width: 160px !important;
-                }
-                .log-item-row .log-status {
-                    margin-left: auto !important;
-                    padding-left: 0 !important;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
     logContainer.innerHTML = parsedLogs.map(item => {
         const diffColor = diffColors[item.diffKey] || '#ff5722';
         
@@ -180,58 +138,49 @@ async function loadAndRenderLogs() {
 
         if (s.type === 'CHANGED') {
             scoreHtml = `
-                <span style="display: inline-block; width: 85px; text-align: right;">${s.oldStr}</span>
-                <span style="color: #ffb74d; margin: 0 4px;">➔</span>
-                <span style="display: inline-block; width: 85px; text-align: right;">${s.newStr}</span>
-                <span style="display: inline-block; width: 65px; text-align: left; margin-left: 6px; color: #888;">${s.diffStr}</span>
+                <span style="display: inline-block; width: 62px; text-align: right;">${s.oldStr}</span>
+                <span style="display: inline-block; width: 40px; text-align: center; color: #ffb74d;">➔</span>
+                <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 55px; text-align: left; margin-left: 3px; color: #888;">${s.diffStr}</span>
             `;
         } else if (s.type === 'NEW') {
             scoreHtml = `
-                <span style="display: inline-block; width: 85px; text-align: center; color: #4caf50; font-weight: bold;">NEW</span>
-                <span style="color: #ffb74d; margin: 0 4px;">➔</span>
-                <span style="display: inline-block; width: 85px; text-align: right;">${s.newStr}</span>
-                <span style="display: inline-block; width: 65px;"></span>
+                <span style="display: inline-block; width: 62px; text-align: center; color: #4caf50;">NEW</span>
+                <span style="display: inline-block; width: 40px; text-align: center; color: #ffb74d;">➔</span>
+                <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 55px;"></span>
             `;
         } else {
             scoreHtml = `
-                <span style="display: inline-block; width: 85px; text-align: right;">${s.newStr}</span>
-                <span style="display: inline-block; width: 160px;"></span>
+                <span style="display: inline-block; width: 62px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 136px;"></span>
             `;
         }
 
         const statusHtml = item.newStatusText 
-            ? `<span style="font-weight: bold; color: #ffd700; white-space: nowrap;">첫 ${item.newStatusText} 달성</span>` 
+            ? `<span style="font-weight: bold; color: #ffd700;">첫 ${item.newStatusText} 달성</span>` 
             : '';
 
         return `
-            <div class="log-item-row">
-                <!-- 날짜 -->
+            <div class="log-item-row" style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.2); font-size: 13px; font-family: monospace; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
                 <span style="color: #888;">${item.date}</span>
-                <span class="divider" style="color: rgba(255,255,255,0.2); text-align: center;">|</span>
+                <span style="color: #ccc;">|</span>
                 
-                <!-- 곡 제목 -->
-                <strong class="log-title" style="
-                    color: #2196F3; 
-                    white-space: nowrap; 
-                    overflow: hidden; 
-                    text-overflow: ellipsis;
-                " title="${item.title}">${item.title}</strong>
-                <span class="divider" style="color: rgba(255,255,255,0.2); text-align: center;">|</span>
+                <strong style="color: #2196F3; display: inline-block; width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;" title="${item.title}">${item.title}</strong>
                 
-                <!-- 난이도 -->
-                <span style="font-weight: bold; color: ${diffColor}; text-align: center;">[${item.difficulty}]</span>
-                <span class="divider" style="color: rgba(255,255,255,0.2); text-align: center;">|</span>
+                <span style="color: #ccc;">|</span>
                 
-                <!-- 점수 영역 -->
-                <div style="display: inline-flex; align-items: center;">
-                    <span style="margin-right: 6px; color: #aaa;">점수:</span>
+                <span style="font-weight: bold; color: ${diffColor}; display: inline-block; width: 72px; text-align: center;">[${item.difficulty}]</span>
+                
+                <span style="color: #ccc;">|</span>
+                
+                <!-- 점수 영역: 너비를 270px로 줄여 여백 타이트하게 조절 -->
+                <div style="display: inline-flex; align-items: center; width: 270px;">
+                    <span style="margin-right: 2px;">점수:</span>
                     ${scoreHtml}
                 </div>
                 
-                <!-- 달성 상태 -->
-                <div class="log-status" style="padding-left: 15px;">
-                    ${statusHtml}
-                </div>
+                ${statusHtml}
             </div>
         `;
     }).join('');
