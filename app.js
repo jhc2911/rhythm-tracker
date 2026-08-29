@@ -92,7 +92,7 @@ async function loadRecords() {
     renderPackStatsTable(); // 앨범별 통계 출력
 }
 
-// 📜 1-2. record_logs 불러오기 및 가공 출력 함수 (오류 방지 및 디버깅 안내 강화)
+// 📜 1-2. record_logs 불러오기 및 가공 출력 함수
 async function loadAndRenderLogs() {
     const logContainer = document.getElementById('recordLogsBody') || document.getElementById('logContainer');
     if (!logContainer) {
@@ -123,8 +123,18 @@ async function loadAndRenderLogs() {
         return;
     }
 
+    // 난이도별 색상 매핑
+    const diffColors = {
+        casual: '#4d7c53',
+        normal: '#bfa128',
+        hard: '#a63244',
+        expert: '#7832a6'
+    };
+
     logContainer.innerHTML = parsedLogs.map(item => {
-        // item.statusText가 존재할 때만 구분선(|)과 상태 문구를 표시
+        const diffColor = diffColors[item.diffKey] || '#ff5722';
+        
+        // 상태 변화가 있을 때만 구분선(|)과 상태 문구를 표시
         const statusHtml = item.statusText 
             ? `<span style="color: #ccc;">|</span><span>상태: ${item.statusText}</span>` 
             : '';
@@ -133,9 +143,15 @@ async function loadAndRenderLogs() {
             <div class="log-item-row" style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.2); font-size: 13px; font-family: monospace; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
                 <span style="color: #888;">${item.date}</span>
                 <span style="color: #ccc;">|</span>
-                <strong style="color: #2196F3;">${item.title}</strong>
+                
+                <!-- 1. 노래 제목: 고정 너비 지정 및 자름 처리로 위치 균일화 -->
+                <strong style="color: #2196F3; display: inline-block; width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;" title="${item.title}">${item.title}</strong>
+                
                 <span style="color: #ccc;">|</span>
-                <span style="font-weight: bold; color: #ff5722;">[${item.difficulty}]</span>
+                
+                <!-- 2. 난이도: 각 난이도별 전용 색상 적용 -->
+                <span style="font-weight: bold; color: ${diffColor}; display: inline-block; width: 85px; text-align: center;">[${item.difficulty}]</span>
+                
                 <span style="color: #ccc;">|</span>
                 <span>점수: ${item.scoreText}</span>
                 ${statusHtml}
@@ -192,7 +208,6 @@ function parseLogRecords(logRows) {
                     scoreText = `${Number(newScore).toLocaleString()}`;
                 }
 
-                // 상태에 변화가 있는 경우에만 상태 텍스트 생성
                 let statusText = null;
                 if (isStatusChanged) {
                     const displayOldStr = formatStatusDisplay(oldStatus);
@@ -203,6 +218,7 @@ function parseLogRecords(logRows) {
                 parsedLogs.push({
                     date: formattedDate,
                     title: songTitle,
+                    diffKey: diff, // 난이도 색상 적용을 위한 키 (casual, normal, hard, expert)
                     difficulty: diff.toUpperCase(),
                     scoreText: scoreText,
                     statusText: statusText
