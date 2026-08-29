@@ -92,10 +92,13 @@ async function loadRecords() {
     renderPackStatsTable(); // 앨범별 통계 출력
 }
 
-// 📜 1-2. record_logs 불러오기 및 가공 출력 함수
+// 📜 1-2. record_logs 불러오기 및 가공 출력 함수 (오류 방지 및 디버깅 안내 강화)
 async function loadAndRenderLogs() {
     const logContainer = document.getElementById('recordLogsBody') || document.getElementById('logContainer');
-    if (!logContainer) return;
+    if (!logContainer) {
+        console.error('로그를 출력할 HTML 요소를 찾을 수 없습니다. (id="recordLogsBody" 확인 필요)');
+        return;
+    }
 
     const { data: logs, error } = await supabaseClient
         .from('record_logs')
@@ -104,42 +107,43 @@ async function loadAndRenderLogs() {
 
     if (error) {
         console.error('record_logs 로드 오류:', error);
-        logContainer.innerHTML = `<div style="color:red; padding: 10px;">로그를 불러오는데 실패했습니다: ${error.message}</div>`;
+        logContainer.innerHTML = `<div style="color:red; padding: 15px; border: 1px solid red; border-radius: 4px;">로그 조회 실패: ${error.message} (Supabase RLS 권한을 확인해 주세요)</div>`;
         return;
     }
 
     if (!logs || logs.length === 0) {
-        logContainer.innerHTML = `<div style="color:#aaa; padding: 15px; text-align:center;">변경 내역 기록이 없습니다.</div>`;
+        logContainer.innerHTML = `<div style="color:#888; padding: 15px; text-align:center; background: rgba(0,0,0,0.05); border-radius: 4px;">변경 내역 데이터가 없습니다. (record_logs 테이블이 비어 있음)</div>`;
         return;
     }
 
     const parsedLogs = parseLogRecords(logs);
 
     if (parsedLogs.length === 0) {
-        logContainer.innerHTML = `<div style="color:#aaa; padding: 15px; text-align:center;">점수 및 상태 변경 내역이 없습니다.</div>`;
+        logContainer.innerHTML = `<div style="color:#888; padding: 15px; text-align:center; background: rgba(0,0,0,0.05); border-radius: 4px;">변경된 점수 또는 상태 내역이 없습니다.</div>`;
         return;
     }
 
-    // 변경 내역 출력 (표 방식 또는 목록 방식)
     logContainer.innerHTML = parsedLogs.map(item => `
-        <div class="log-item-row" style="padding: 8px 12px; border-bottom: 1px solid rgba(128,128,128,0.2); font-size: 13px; font-family: monospace; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+        <div class="log-item-row" style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.2); font-size: 13px; font-family: monospace; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
             <span style="color: #888;">${item.date}</span>
-            <span style="color: #888;">/</span>
-            <strong>${item.title}</strong>
-            <span style="color: #888;">/</span>
-            <span style="font-weight: bold; color: #ff5722;">${item.difficulty}</span>
-            <span style="color: #888;">/</span>
-            <span>${item.scoreText}</span>
-            <span style="color: #888;">/</span>
-            <span>${item.statusText}</span>
+            <span style="color: #ccc;">|</span>
+            <strong style="color: #2196F3;">${item.title}</strong>
+            <span style="color: #ccc;">|</span>
+            <span style="font-weight: bold; color: #ff5722;">[${item.difficulty}]</span>
+            <span style="color: #ccc;">|</span>
+            <span>점수: ${item.scoreText}</span>
+            <span style="color: #ccc;">|</span>
+            <span>상태: ${item.statusText}</span>
         </div>
     `).join('');
 }
 
 // 헬퍼: 날짜 포맷팅 (YY-MM-DD HH:mm:ss)
 function formatLogDate(dateString) {
-    if (!dateString) return '';
+    if (!dateString) return '-';
     const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString;
+    
     const yy = String(d.getFullYear()).slice(2);
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
@@ -155,40 +159,38 @@ function parseLogRecords(logRows) {
     const diffKeys = ['casual', 'normal', 'hard', 'expert'];
 
     logRows.forEach(log => {
-        const formattedDate = formatLogDate(log.updated_at);
-        const songTitle = log.song_title || 'Unknown Song';
+        const formattedDate = formatLogDate(log.updated_at || log.created_at);
+        const songTitle = log.song_title || log.title || `곡 ID: ${log.song_id || 'Unknown'}`;
 
         diffKeys.forEach(diff => {
-            // 업로드하신 DB 컬럼 규칙(old_expert_score / old_expert / old_expert_status 등) 대응
             const oldScore = log[`old_${diff}_score`] ?? log[`old_${diff}`];
             const newScore = log[`new_${diff}_score`] ?? log[`new_${diff}`];
             
-            // 이미지 속 5번째, 6번째 컬럼명 대응
             const oldStatus = log[`old_${diff}_status`] ?? log[`old_${diff}_stat`] ?? log[`old_${diff}_1`];
             const newStatus = log[`new_${diff}_status`] ?? log[`new_${diff}_stat`] ?? log[`new_${diff}_1`];
 
-            const isScoreChanged = newScore !== null && newScore !== undefined && oldScore !== newScore;
-            const isStatusChanged = newStatus !== null && newStatus !== undefined && oldStatus !== newStatus;
+            const isScoreChanged = newScore !== undefined && newScore !== null && oldScore !== newScore;
+            const isStatusChanged = newStatus !== undefined && newStatus !== null && oldStatus !== newStatus;
 
             if (isScoreChanged || isStatusChanged) {
                 let scoreText = '-';
                 if (isScoreChanged) {
                     if (oldScore !== null && oldScore !== undefined) {
-                        const diffVal = newScore - oldScore;
+                        const diffVal = Number(newScore) - Number(oldScore);
                         const sign = diffVal >= 0 ? '+' : '';
-                        scoreText = `${oldScore.toLocaleString()} -> ${newScore.toLocaleString()} (${sign}${diffVal})`;
+                        scoreText = `${Number(oldScore).toLocaleString()} ➔ ${Number(newScore).toLocaleString()} (${sign}${diffVal})`;
                     } else {
-                        scoreText = `NEW ${newScore.toLocaleString()}`;
+                        scoreText = `NEW ${Number(newScore).toLocaleString()}`;
                     }
                 } else if (newScore !== null && newScore !== undefined) {
-                    scoreText = `${newScore.toLocaleString()}`;
+                    scoreText = `${Number(newScore).toLocaleString()}`;
                 }
 
                 let statusText = '-';
                 if (isStatusChanged) {
                     const displayOldStr = formatStatusDisplay(oldStatus);
                     const displayNewStr = formatStatusDisplay(newStatus);
-                    statusText = `${displayOldStr} -> ${displayNewStr}`;
+                    statusText = `${displayOldStr} ➔ ${displayNewStr}`;
                 } else if (newStatus) {
                     statusText = formatStatusDisplay(newStatus);
                 }
@@ -207,7 +209,7 @@ function parseLogRecords(logRows) {
     return parsedLogs;
 }
 
-// status 표기 단순화 맵 (FC -> FULL COMBO)
+// status 표기 단순화 맵
 function formatStatusDisplay(statusStr) {
     if (!statusStr) return '-';
     const map = {
@@ -412,7 +414,7 @@ function applyCurrentFilterAndRender() {
     renderTable(displayList);
 }
 
-// 📱 🎯 [수정] 통합 셀 필터링 제어 함수 (PC 우클릭 + 모바일 롱 프레스 지원)
+// 셀 필터링 제어 함수 (PC 우클릭 + 모바일 롱 프레스 지원)
 function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
     if (e && e.cancelable && e.type === 'contextmenu') {
         e.preventDefault();
@@ -455,7 +457,7 @@ function filterCell(e, type, categoryValue, statusType, forceNegative = null) {
     }
 }
 
-// 📱 모바일 롱 프레스(길게 누르기) 및 터치 잔상 방지 바인딩 헬퍼 함수
+// 모바일 롱 프레스 및 터치 이벤트 바인딩
 function attachTouchAndClickEvents(element, type, categoryValue, statusType) {
     let touchTimer = null;
     let isLongPress = false;
@@ -977,7 +979,7 @@ function renderDiffStatsTable() {
     diffBody.appendChild(totalTr);
 }
 
-// 📦 앨범별 통계 계산 및 렌더링 함수
+// 📦 앨범별 통계 계산 및 렌더링 함수 (에러 수정 완료)
 function renderPackStatsTable() {
     const packBody = document.getElementById('packStatsTableBody');
     if (!packBody) return;
@@ -1080,6 +1082,7 @@ function renderPackStatsTable() {
         packBody.appendChild(tr);
     });
 
+    // TOTAL 행 (createTd 함수명으로 통일 수정 완료)
     const totalTr = document.createElement('tr');
     totalTr.className = 'total-row';
 
@@ -1088,9 +1091,9 @@ function renderPackStatsTable() {
 
     totalTr.appendChild(tdTotalLabel);
     totalTr.appendChild(createTd('pack', null, 'AP+', `<span class="status-applus">${totalStats.applus}</span><span class="stats-rate">${getRateStr(totalStats.applus, totalStats.total)}</span>`, isCellSelected('pack', null, 'AP+')));
-    totalTr.appendChild(createTotalTd('pack', null, 'AP', `<span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span>`, isCellSelected('pack', null, 'AP')));
-    totalTr.appendChild(createTotalTd('pack', null, 'FC', `<span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span>`, isCellSelected('pack', null, 'FC')));
-    totalTr.appendChild(createTotalTd('pack', null, 'CLEAR', `<span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span>`, isCellSelected('pack', null, 'CLEAR')));
+    totalTr.appendChild(createTd('pack', null, 'AP', `<span class="status-ap">${totalStats.ap}</span><span class="stats-rate">${getRateStr(totalStats.ap, totalStats.total)}</span>`, isCellSelected('pack', null, 'AP')));
+    totalTr.appendChild(createTd('pack', null, 'FC', `<span class="status-fc">${totalStats.fc}</span><span class="stats-rate">${getRateStr(totalStats.fc, totalStats.total)}</span>`, isCellSelected('pack', null, 'FC')));
+    totalTr.appendChild(createTd('pack', null, 'CLEAR', `<span class="status-clear">${totalStats.clear}</span><span class="stats-rate">${getRateStr(totalStats.clear, totalStats.total)}</span>`, isCellSelected('pack', null, 'CLEAR')));
 
     packBody.appendChild(totalTr);
 }
