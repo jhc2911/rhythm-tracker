@@ -123,7 +123,6 @@ async function loadAndRenderLogs() {
         return;
     }
 
-    // 난이도별 색상 매핑
     const diffColors = {
         casual: '#4d7c53',
         normal: '#bfa128',
@@ -134,7 +133,33 @@ async function loadAndRenderLogs() {
     logContainer.innerHTML = parsedLogs.map(item => {
         const diffColor = diffColors[item.diffKey] || '#ff5722';
         
-        // 상태 변화가 있을 때만 구분선(|)과 상태 문구를 표시
+        // 점수 구조 정렬 가공
+        const s = item.scoreObj;
+        let scoreHtml = '';
+
+        if (s.type === 'CHANGED') {
+            scoreHtml = `
+                <span style="display: inline-block; width: 85px; text-align: right;">${s.oldStr}</span>
+                <span style="display: inline-block; width: 24px; text-align: center; color: #ffb74d;">➔</span>
+                <span style="display: inline-block; width: 85px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 75px; text-align: left; margin-left: 6px; color: #888;">${s.diffStr}</span>
+            `;
+        } else if (s.type === 'NEW') {
+            scoreHtml = `
+                <span style="display: inline-block; width: 85px; text-align: center; color: #4caf50;">NEW</span>
+                <span style="display: inline-block; width: 24px; text-align: center; color: #ffb74d;">➔</span>
+                <span style="display: inline-block; width: 85px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 75px;"></span>
+            `;
+        } else {
+            // 점수 변화가 없고 상태만 변경된 경우
+            scoreHtml = `
+                <span style="display: inline-block; width: 85px; text-align: right;">${s.newStr}</span>
+                <span style="display: inline-block; width: 189px;"></span>
+            `;
+        }
+
+        // 상태 변화 항목
         const statusHtml = item.statusText 
             ? `<span style="color: #ccc;">|</span><span>상태: ${item.statusText}</span>` 
             : '';
@@ -144,16 +169,22 @@ async function loadAndRenderLogs() {
                 <span style="color: #888;">${item.date}</span>
                 <span style="color: #ccc;">|</span>
                 
-                <!-- 1. 노래 제목: 고정 너비 지정 및 자름 처리로 위치 균일화 -->
+                <!-- 1. 노래 제목: 너비 고정 -->
                 <strong style="color: #2196F3; display: inline-block; width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;" title="${item.title}">${item.title}</strong>
                 
                 <span style="color: #ccc;">|</span>
                 
-                <!-- 2. 난이도: 각 난이도별 전용 색상 적용 -->
+                <!-- 2. 난이도: 색상 적용 및 너비 고정 -->
                 <span style="font-weight: bold; color: ${diffColor}; display: inline-block; width: 85px; text-align: center;">[${item.difficulty}]</span>
                 
                 <span style="color: #ccc;">|</span>
-                <span>점수: ${item.scoreText}</span>
+                
+                <!-- 3. 점수: 전체 고정 너비(330px) 안에서 정렬 -->
+                <div style="display: inline-flex; align-items: center; width: 330px;">
+                    <span style="margin-right: 6px;">점수:</span>
+                    ${scoreHtml}
+                </div>
+                
                 ${statusHtml}
             </div>
         `;
@@ -195,17 +226,38 @@ function parseLogRecords(logRows) {
             const isStatusChanged = newStatus !== undefined && newStatus !== null && oldStatus !== newStatus;
 
             if (isScoreChanged || isStatusChanged) {
-                let scoreText = '-';
+                let scoreObj = {
+                    type: 'NO_CHANGE',
+                    oldStr: '',
+                    newStr: '',
+                    diffStr: ''
+                };
+
                 if (isScoreChanged) {
                     if (oldScore !== null && oldScore !== undefined) {
                         const diffVal = Number(newScore) - Number(oldScore);
                         const sign = diffVal >= 0 ? '+' : '';
-                        scoreText = `${Number(oldScore).toLocaleString()} ➔ ${Number(newScore).toLocaleString()} (${sign}${diffVal})`;
+                        scoreObj = {
+                            type: 'CHANGED',
+                            oldStr: Number(oldScore).toLocaleString(),
+                            newStr: Number(newScore).toLocaleString(),
+                            diffStr: `(${sign}${diffVal})`
+                        };
                     } else {
-                        scoreText = `NEW ${Number(newScore).toLocaleString()}`;
+                        scoreObj = {
+                            type: 'NEW',
+                            oldStr: '',
+                            newStr: Number(newScore).toLocaleString(),
+                            diffStr: ''
+                        };
                     }
                 } else if (newScore !== null && newScore !== undefined) {
-                    scoreText = `${Number(newScore).toLocaleString()}`;
+                    scoreObj = {
+                        type: 'SAME',
+                        oldStr: '',
+                        newStr: Number(newScore).toLocaleString(),
+                        diffStr: ''
+                    };
                 }
 
                 let statusText = null;
@@ -218,9 +270,9 @@ function parseLogRecords(logRows) {
                 parsedLogs.push({
                     date: formattedDate,
                     title: songTitle,
-                    diffKey: diff, // 난이도 색상 적용을 위한 키 (casual, normal, hard, expert)
+                    diffKey: diff,
                     difficulty: diff.toUpperCase(),
-                    scoreText: scoreText,
+                    scoreObj: scoreObj,
                     statusText: statusText
                 });
             }
