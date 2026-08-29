@@ -136,40 +136,40 @@ async function loadAndRenderLogs() {
         const s = item.scoreObj;
         let scoreHtml = '';
 
-        // 🎯 점수와 증감치가 겹치지 않도록 min-width 및 width 폭을 넉넉히 확보
+        // 🎯 점수 영역 너비를 넉넉하게 확보하여 숫자가 절대 겹치지 않도록 수정
         if (s.type === 'CHANGED') {
             scoreHtml = `
-                <span style="display: inline-block; min-width: 78px; text-align: right;">${s.oldStr}</span>
+                <span style="display: inline-block; width: 88px; text-align: right;">${s.oldStr}</span>
                 <span style="color: #ffb74d; margin: 0 4px;">➔</span>
-                <span style="display: inline-block; min-width: 78px; text-align: left;">${s.newStr}</span>
-                <span style="display: inline-block; min-width: 65px; text-align: left; margin-left: 6px; color: #888;">${s.diffStr}</span>
+                <span style="display: inline-block; width: 88px; text-align: left;">${s.newStr}</span>
+                <span style="display: inline-block; width: 65px; text-align: left; margin-left: 6px; color: #888;">${s.diffStr}</span>
             `;
         } else if (s.type === 'NEW') {
             scoreHtml = `
-                <span style="display: inline-block; min-width: 78px; text-align: center; color: #4caf50; font-weight: bold;">NEW</span>
+                <span style="display: inline-block; width: 88px; text-align: center; color: #4caf50; font-weight: bold;">NEW</span>
                 <span style="color: #ffb74d; margin: 0 4px;">➔</span>
-                <span style="display: inline-block; min-width: 78px; text-align: left;">${s.newStr}</span>
-                <span style="display: inline-block; min-width: 65px;"></span>
+                <span style="display: inline-block; width: 88px; text-align: left;">${s.newStr}</span>
+                <span style="display: inline-block; width: 65px;"></span>
             `;
         } else {
             scoreHtml = `
-                <span style="display: inline-block; min-width: 78px; text-align: left;">${s.newStr}</span>
-                <span style="display: inline-block; min-width: 150px;"></span>
+                <span style="display: inline-block; width: 88px; text-align: left;">${s.newStr}</span>
+                <span style="display: inline-block; width: 163px;"></span>
             `;
         }
 
         const statusHtml = item.newStatusText 
-            ? `<span style="font-weight: bold; color: #ffd700; white-space: nowrap; margin-left: auto; flex-shrink: 0;">첫 ${item.newStatusText} 달성</span>` 
+            ? `<span style="font-weight: bold; color: #ffd700; white-space: nowrap;">첫 ${item.newStatusText} 달성</span>` 
             : '';
 
         return `
             <div class="log-item-row" style="
-                padding: 10px 8px; 
+                padding: 10px 12px; 
                 border-bottom: 1px solid rgba(128,128,128,0.2); 
                 font-size: 13px; 
                 font-family: monospace; 
-                display: flex; 
-                flex-wrap: nowrap; 
+                display: grid; 
+                grid-template-columns: 145px 1fr 90px 300px auto; 
                 align-items: center; 
                 white-space: nowrap; 
                 gap: 8px;
@@ -177,30 +177,29 @@ async function loadAndRenderLogs() {
                 box-sizing: border-box;
             ">
                 <!-- 날짜 -->
-                <span style="color: #888; flex-shrink: 0; min-width: 135px;">${item.date}</span>
+                <span style="color: #888;">${item.date}</span>
                 
-                <!-- 곡 제목 (남는 화면 폭을 가변적으로 활용) -->
+                <!-- 곡 제목 -->
                 <strong style="
                     color: #2196F3; 
                     white-space: nowrap; 
                     overflow: hidden; 
                     text-overflow: ellipsis;
-                    flex-shrink: 1;
-                    min-width: 90px;
-                    max-width: 200px;
                 " title="${item.title}">${item.title}</strong>
                 
                 <!-- 난이도 -->
-                <span style="font-weight: bold; color: ${diffColor}; text-align: center; flex-shrink: 0; min-width: 75px;">[${item.difficulty}]</span>
+                <span style="font-weight: bold; color: ${diffColor}; text-align: center;">[${item.difficulty}]</span>
                 
                 <!-- 점수 영역 -->
-                <div style="display: inline-flex; align-items: center; flex-shrink: 0;">
-                    <span style="margin-right: 4px; color: #aaa;">점수:</span>
+                <div style="display: inline-flex; align-items: center;">
+                    <span style="margin-right: 6px; color: #aaa;">점수:</span>
                     ${scoreHtml}
                 </div>
                 
                 <!-- 달성 상태 -->
-                ${statusHtml}
+                <div style="text-align: right; min-width: 130px;">
+                    ${statusHtml}
+                </div>
             </div>
         `;
     }).join('');
