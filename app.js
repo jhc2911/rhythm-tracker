@@ -152,16 +152,15 @@ async function loadAndRenderLogs() {
                 <span style="display: inline-block; width: 75px;"></span>
             `;
         } else {
-            // 점수 변화가 없고 상태만 변경된 경우
             scoreHtml = `
                 <span style="display: inline-block; width: 85px; text-align: right;">${s.newStr}</span>
                 <span style="display: inline-block; width: 189px;"></span>
             `;
         }
 
-        // 상태 변화 항목
-        const statusHtml = item.statusText 
-            ? `<span style="color: #ccc;">|</span><span>상태: ${item.statusText}</span>` 
+        // 상태 달성 문구 가공 ('첫 {newStatusText} 달성')
+        const statusHtml = item.newStatusText 
+            ? `<span style="color: #ccc;">|</span><span style="font-weight: bold; color: #ffd700;">첫 ${item.newStatusText} 달성</span>` 
             : '';
 
         return `
@@ -169,17 +168,14 @@ async function loadAndRenderLogs() {
                 <span style="color: #888;">${item.date}</span>
                 <span style="color: #ccc;">|</span>
                 
-                <!-- 1. 노래 제목: 너비 고정 -->
                 <strong style="color: #2196F3; display: inline-block; width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;" title="${item.title}">${item.title}</strong>
                 
                 <span style="color: #ccc;">|</span>
                 
-                <!-- 2. 난이도: 색상 적용 및 너비 고정 -->
                 <span style="font-weight: bold; color: ${diffColor}; display: inline-block; width: 85px; text-align: center;">[${item.difficulty}]</span>
                 
                 <span style="color: #ccc;">|</span>
                 
-                <!-- 3. 점수: 전체 고정 너비(330px) 안에서 정렬 -->
                 <div style="display: inline-flex; align-items: center; width: 330px;">
                     <span style="margin-right: 6px;">점수:</span>
                     ${scoreHtml}
@@ -260,11 +256,10 @@ function parseLogRecords(logRows) {
                     };
                 }
 
-                let statusText = null;
-                if (isStatusChanged) {
-                    const displayOldStr = formatStatusDisplay(oldStatus);
-                    const displayNewStr = formatStatusDisplay(newStatus);
-                    statusText = displayOldStr ? `${displayOldStr} ➔ ${displayNewStr}` : displayNewStr;
+                // 상태에 변경이 있을 때 newStatus 값만 추출
+                let newStatusText = null;
+                if (isStatusChanged && newStatus) {
+                    newStatusText = formatStatusDisplay(newStatus);
                 }
 
                 parsedLogs.push({
@@ -273,7 +268,7 @@ function parseLogRecords(logRows) {
                     diffKey: diff,
                     difficulty: diff.toUpperCase(),
                     scoreObj: scoreObj,
-                    statusText: statusText
+                    newStatusText: newStatusText
                 });
             }
         });
