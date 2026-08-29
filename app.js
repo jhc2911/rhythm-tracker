@@ -164,15 +164,15 @@ async function loadAndRenderLogs() {
         return `
             <div class="log-item-row" style="padding: 10px 12px; border-bottom: 1px solid rgba(128,128,128,0.2); font-size: 13px; font-family: monospace; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
                 <span style="color: #888;">${item.date}</span>
-                <span style="color: #ccc;">|</span>
+                <span style="color: #ccc;"></span>
                 
                 <strong style="color: #2196F3; display: inline-block; width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;" title="${item.title}">${item.title}</strong>
                 
-                <span style="color: #ccc;">|</span>
+                <span style="color: #ccc;"></span>
                 
                 <span style="font-weight: bold; color: ${diffColor}; display: inline-block; width: 72px; text-align: center;">[${item.difficulty}]</span>
                 
-                <span style="color: #ccc;">|</span>
+                <span style="color: #ccc;"></span>
                 
                 <!-- 점수 영역: 너비를 270px로 줄여 여백 타이트하게 조절 -->
                 <div style="display: inline-flex; align-items: center; width: 270px;">
