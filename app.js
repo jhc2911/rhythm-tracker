@@ -1118,7 +1118,9 @@ function renderPackStatsTable() {
     const packOrder = [
         'TRACING THE STARS',
         'T.T.S. EXTENSION PACK V.1',
-        'T.T.S. SUMMER PACK V.1'
+        'T.T.S. SUMMER PACK V.1',
+        'T.T.S. EXTENSION PACK V.2',
+        'T.T.S. TETRA ENTERTAINMENT PACK V.1'
     ];
 
     const sortedPacks = Object.keys(packStatsMap).sort((a, b) => {
